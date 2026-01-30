@@ -42,5 +42,61 @@ class TestJSCodeGenerator(unittest.TestCase):
         self.assertIn("} else {", js)
         self.assertIn("print('no');", js)
 
+    def test_for_loop(self):
+        code = "for:i,0..5|@print(i)"
+        js = self.compile(code)
+        self.assertIn("for (const i of", js)
+        self.assertIn("Array.from", js)
+
+    def test_while_loop(self):
+        code = "v:x=0|while:x<5|x+=1"
+        js = self.compile(code)
+        self.assertIn("let x = 0;", js)
+        self.assertIn("while", js)
+        self.assertIn("x += 1;", js)
+
+    def test_compound_assignment(self):
+        code = "v:count=0|count+=5"
+        js = self.compile(code)
+        self.assertIn("let count = 0;", js)
+        self.assertIn("count += 5;", js)
+
+    def test_range_expr(self):
+        code = "v:nums=0..10"
+        js = self.compile(code)
+        self.assertIn("Array.from({length:", js)
+
+    def test_index_access(self):
+        code = "v:items=[1,2,3]|v:x=items[0]"
+        js = self.compile(code)
+        self.assertIn("items[0]", js)
+
+    def test_api_call(self):
+        code = "api:GET,'/users'"
+        js = self.compile(code)
+        self.assertIn("fetch('/users')", js)
+
+    def test_data_pipeline(self):
+        code = "data:[1,2,3,4,5]|filter:item>2|map:item*2"
+        js = self.compile(code)
+        self.assertIn("data.filter", js)
+        self.assertIn("data.map", js)
+
+    def test_groupby_operation(self):
+        code = "data:[{cat:'A',val:1},{cat:'B',val:2}]|groupBy:cat"
+        js = self.compile(code)
+        self.assertIn("reduce", js)
+        self.assertIn("groups", js)
+
+    def test_aggregate_operation(self):
+        code = "data:[{cat:'A',val:1},{cat:'A',val:2}]|groupBy:cat|agg:sum"
+        js = self.compile(code)
+        self.assertIn("reduce", js)
+
+    def test_sort_operation(self):
+        code = "data:[{x:3},{x:1},{x:2}]|sort:x"
+        js = self.compile(code)
+        self.assertIn("sort", js)
+
 if __name__ == '__main__':
     unittest.main()

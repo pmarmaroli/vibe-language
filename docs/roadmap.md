@@ -39,11 +39,21 @@ VL aims to become the universal programming language for the AI era—enabling s
 - **Type-safe code generation with automatic typing imports**
 - **Array/object indexing support: `arr[0]`, `obj['key']`, nested indexing**
 - **Data pipeline operations: fixed `item` keyword scoping**
-- **Python FFI (Foreign Function Interface) with `py:` prefix**- **VS Code extension (syntax highlighting) - Basic implementation**- **Advanced language features:**
+- **Python FFI (Foreign Function Interface) with `py:` prefix**
+- **VS Code extension (syntax highlighting) - Basic implementation**
+- **VL → JavaScript compiler (100% feature-complete)**
+  - All core language constructs
+  - Loops, conditionals, functions
+  - Data pipelines with full operation support (filter, map, groupBy, agg, sort)
+  - API calls (fetch)
+  - File operations (Node.js fs module)
+  - UI components (React with hooks)
+  - Test coverage: 14/14 tests passing (100%)
+- **Advanced language features:**
   - Implicit variables: `x=5` instead of `v:x=5`
   - Implicit function calls: `print()` instead of `@print()`
   - Compound operators: `+=`, `-=`, `*=`, `/=`
-  - Range shorthand: `0..10` instead of `range(0,10)`
+  - Range shorthand: `0..10` → `Array.from()`
   - Infix operator support (+, -, *, /, &&, ||, !, ==, !=, <, >, <=, >=)
   - Pipeline operations from any expression
   - Nested loops with any variable names
@@ -62,19 +72,23 @@ VL aims to become the universal programming language for the AI era—enabling s
 - Example Programs: 100% (7/7 compile)
 - Compilation Success: 100% (15/15 real-world scenarios)
 - Robustness: 100% (15/15 complex patterns)
-- Total Tests Passing: 100% (37/37 across all test suites)
+- Python Tests Passing: 100% (37/37 tests)
+- JavaScript Tests Passing: 100% (14/14 tests)
+- Total Test Coverage: 51/51 tests (100%)
 
 ### 🚧 In Progress
 
+- TypeScript compiler (type-safe JavaScript generation)
 - Documentation website
-- Community setup (Discord/Slack)
+- More example programs
 
 ### 📋 Next Up
 
-- More code examples (50+ across all domains)
+- Complete TypeScript compiler
+- Standard library functions
 - Community Discord/Slack
-- Performance benchmarks
-- First beta release
+- Performance benchmarks vs JavaScript/Python
+- First beta release (v0.2.0)
 
 -----
 
@@ -127,11 +141,12 @@ VL aims to become the universal programming language for the AI era—enabling s
 
 #### Compiler Targets
 
-- [ ] VL → Python compiler (production-ready)
-- [x] VL → JavaScript compiler (in-progress)
-- [ ] VL → TypeScript compiler
+- [x] VL → Python compiler (production-ready, 100% operational)
+- [x] VL → JavaScript compiler (feature-complete, 100% operational)
+- [ ] VL → TypeScript compiler (in-progress)
 - [x] Target selection (`--target python|js`)
 - [ ] Optimization passes
+- [ ] Source maps for debugging
 
 #### Language Features
 

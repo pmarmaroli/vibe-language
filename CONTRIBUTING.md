@@ -54,11 +54,34 @@ We are in active development with significant progress:
 
 ### Getting Started
 
-1. **Read the Specification**
-   - Review the [README.md](README.md) to understand VL's syntax and design
-   - Familiarize yourself with the core domains (API, UI, Data, File I/O)
+1. **Read the Documentation**
+   - Review the [README.md](README.md) for project overview
+   - Read the [Language Specification](docs/specification.md)
+   - Check the [Roadmap](docs/roadmap.md) for current status
+   - Review [TESTING.md](TESTING.md) for testing guidelines
+   - See [CHANGELOG.md](CHANGELOG.md) for recent changes
 
-2. **Check Existing Issues**
+2. **Set Up Development Environment**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/vibe-language.git
+cd vibe-language
+
+# Test the CLI
+.\vl.bat --version
+
+# Run tests
+python -m pytest interpreter/tests/ -v
+python interpreter/tests/test_js_codegen.py -v
+```
+
+3. **Explore the Codebase**
+   - `interpreter/` - Core interpreter and compilers
+   - `examples/` - Example VL programs
+   - `vibe-vscode/` - VS Code extension
+   - `docs/` - Documentation files
+
+4. **Check Existing Issues**
    - Look at [open issues](../../issues) to find something to work on
    - Issues labeled `good first issue` are great for newcomers
    - Issues labeled `help wanted` are priorities
