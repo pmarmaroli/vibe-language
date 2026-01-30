@@ -60,22 +60,53 @@
 
 ## 🚀 Get Started
 
-### Option 1: Transparent Mode (Coming Soon)
+### Option 1: VS Code Extension (Alpha - Available Now)
 
-**The future of VL:** A VS Code extension that works invisibly:
+**Try the VL extension for manual conversion:**
 
+#### Setup (5 minutes)
+1. Open VS Code in the `vibe-language/vibe-vscode` folder
+2. Install dependencies: `npm install`
+3. Compile: `npm run compile`
+4. Press **F5** to launch Extension Development Host
+
+#### Usage
+In the Extension Development Host:
+1. Open any Python file (e.g., `test_conversion.py`)
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P`)
+3. Run command: **"VL: Convert Current File to VL"**
+4. See token-optimized VL version with savings percentage!
+
+#### Available Commands
+- `VL: Convert Current File to VL` - Python → VL conversion
+- `VL: Compile VL to Target Language` - VL → Python/JS/TS
+- `VL: Show Cost Savings Dashboard` - View analytics
+- `VL: Toggle Transparent Mode` - Enable/disable (info only)
+
+#### Extension Structure
 ```
-You write Python/JS → Extension converts to VL → Sends to AI (45% fewer tokens)
-                    ← AI responds in VL ← Extension converts back to Python/JS
+vibe-vscode/
+├── src/
+│   ├── extension.ts              # Main entry point, command registration
+│   ├── converter/
+│   │   └── vlConverter.ts        # Python bridge to VL compiler
+│   ├── ui/
+│   │   ├── statusBar.ts          # Token savings status bar
+│   │   └── dashboard.ts          # Analytics webview
+│   ├── transparent-mode/
+│   │   └── manager.ts            # Future Copilot integration (stub)
+│   └── utils/
+│       └── logger.ts             # Debug logging
+├── out/                          # Compiled JavaScript
+├── package.json                  # Extension manifest
+└── tsconfig.json                 # TypeScript config
 ```
 
-**You never see VL syntax. You just save money.**
-
-🔔 **[Join the waitlist for early access](#)** (VS Code extension in development)
+**Status:** Manual conversion working. Transparent Copilot interception coming Q2 2026.
 
 ---
 
-### Option 2: Direct Compiler (Available Now)
+### Option 2: Direct Compiler (Command Line)
 
 Use VL as a token-efficient intermediate language for AI workflows:
 
@@ -126,28 +157,43 @@ export PYTHONPATH="$PWD/src"
 
 ```
 vibe-language/
-├── src/vl/              # Source code (Python package)
-│   ├── codegen/         # Code generators for all targets
+├── src/vl/              # VL Compiler (Python implementation)
+│   ├── codegen/         # Code generators for all 5 targets
 │   ├── cli.py           # Command-line interface
 │   ├── compiler.py      # Main compiler
 │   ├── lexer.py         # Tokenizer
 │   ├── parser.py        # AST generator
+│   ├── py_to_vl.py      # Python → VL converter (100% working)
+│   ├── py2vl.py         # Python → VL CLI tool
 │   ├── type_checker.py  # Type validation
 │   └── config.py        # Configuration settings
+├── vibe-vscode/         # VS Code Extension (NEW!)
+│   ├── src/             # TypeScript source
+│   │   ├── extension.ts        # Main entry point
+│   │   ├── converter/          # VL converter bridge
+│   │   ├── ui/                 # Status bar, dashboard
+│   │   ├── transparent-mode/   # Future Copilot integration
+│   │   └── utils/              # Logger, helpers
+│   ├── out/             # Compiled JS (run npm compile)
+│   └── package.json     # Extension manifest
 ├── tests/               # All tests organized by type
 │   ├── unit/            # Unit tests for individual components
 │   ├── integration/     # Integration tests including Python↔VL roundtrips
 │   ├── codegen/         # Code generation tests for all 5 targets
-│   ├── benchmarks/      # Performance and token efficiency benchmarks
-│   └── manual/          # Manual test scripts and debugging files
+│   └── benchmarks/      # Performance and token efficiency benchmarks
 ├── examples/            # VL example programs
-│   ├── basic/           # Hello world, functions, loops, CLI demos
-│   ├── data/            # Data pipelines, APIs, CSV processing, web scraping
+│   ├── basic/           # Hello world, functions, loops
+│   ├── data/            # Data pipelines, APIs, CSV processing
 │   └── ui/              # UI components
-├── docs/                # Documentation
-│   └── specification.md # Language specification
-└── .github/             # CI/CD pipeline
+└── docs/                # Documentation
+    └── specification.md # Language specification
 ```
+
+**Key Files to Know:**
+- `src/vl/py_to_vl.py` - Python → VL conversion logic (100% success rate)
+- `src/vl/compiler.py` - VL → Python/JS/TS/C/Rust compilation
+- `vibe-vscode/src/extension.ts` - VS Code extension main logic
+- `vibe-vscode/src/converter/vlConverter.ts` - Bridge between extension and compiler
 
 ### Your First VL Program
 
@@ -1365,6 +1411,106 @@ python -m pytest tests/ --cov=src/vl --cov-report=html
 3. **Run tests**: `python tests/codegen/test_codegen_all.py`
 4. **Test CLI**: `./vl.bat examples/basic/hello.vl`
 5. **Submit PR** with tests and documentation
+
+---
+
+## 🔧 Troubleshooting
+
+### VS Code Extension Issues
+
+**Problem: "Cannot find module './ui/dashboard'" error in extension.ts**
+```bash
+# Solution: Restart TypeScript server
+cd vibe-vscode
+npm run compile
+# In VS Code: Ctrl+Shift+P → "TypeScript: Restart TS Server"
+```
+
+**Problem: Extension doesn't load / commands not found**
+```bash
+# Solution: Rebuild and restart
+cd vibe-vscode
+rm -rf out node_modules
+npm install
+npm run compile
+# Press F5 to launch Extension Development Host
+```
+
+**Problem: Python converter fails with "No module named 'vl'"**
+```bash
+# Solution: Set PYTHONPATH environment variable
+# Windows PowerShell
+$env:PYTHONPATH="D:\Github\vibe-language\src"
+
+# Unix/Linux/Mac
+export PYTHONPATH="/path/to/vibe-language/src"
+
+# The extension looks for VL compiler relative to its path:
+# vibe-language/vibe-vscode/../src/vl/
+```
+
+**Problem: "python command not found" in extension**
+```json
+// Solution: Configure Python path in VS Code settings
+{
+  "vl.compiler.pythonPath": "C:\\Python39\\python.exe"  // Windows
+  "vl.compiler.pythonPath": "/usr/bin/python3"         // Unix
+}
+```
+
+### Compiler Issues
+
+**Problem: PYTHONPATH not set**
+```bash
+# Permanent solution (add to your shell profile):
+
+# Windows PowerShell (~\Documents\PowerShell\profile.ps1)
+$env:PYTHONPATH="D:\Github\vibe-language\src"
+
+# Bash (~/.bashrc or ~/.bash_profile)
+export PYTHONPATH="$HOME/path/to/vibe-language/src"
+
+# Zsh (~/.zshrc)
+export PYTHONPATH="$HOME/path/to/vibe-language/src"
+```
+
+**Problem: Import errors when running tests**
+```bash
+# Always run from repository root with PYTHONPATH set
+cd vibe-language
+export PYTHONPATH="$PWD/src"
+python tests/integration/test_realworld_py2vl.py
+```
+
+### Development Workflow
+
+**Quick Reset (Fresh Start):**
+```bash
+# 1. Clean everything
+cd vibe-language/vibe-vscode
+rm -rf out node_modules
+
+# 2. Reinstall
+npm install
+npm run compile
+
+# 3. Set environment
+cd ..
+export PYTHONPATH="$PWD/src"  # or $env:PYTHONPATH on Windows
+
+# 4. Test compiler
+python -m vl.py2vl test_conversion.py
+
+# 5. Test extension (F5 in VS Code)
+```
+
+**Daily Development Checklist:**
+1. ✅ PYTHONPATH is set (`echo $PYTHONPATH` or `$env:PYTHONPATH`)
+2. ✅ Extension compiled (`npm run compile` in vibe-vscode/)
+3. ✅ Python tests pass (`python tests/codegen/test_codegen_all.py`)
+4. ✅ Extension commands work (F5 → test conversion)
+
+---
 
 ### Adding a New Target Language
 
