@@ -1,0 +1,26 @@
+# Various Function Examples
+meta:functions,function,python
+
+# Simple arithmetic
+fn:add|i:int,int|o:int|ret:op:+(i0,i1)
+
+fn:multiply|i:int,int|o:int|ret:op:*(i0,i1)
+
+# With conditionals
+fn:max|i:int,int|o:int|ret:if:op:>(i0,i1)?i0:i1
+
+# With loops
+fn:sum_range|i:int|o:int|
+  v:total=0|
+  for:i,range(0,$i)|v:total=op:+(total,i)|
+  ret:$total
+
+# Array operations
+fn:double_all|i:arr|o:arr|
+  data:$i|map:op:*(item,2)
+
+export:add
+export:multiply
+export:max
+export:sum_range
+export:double_all

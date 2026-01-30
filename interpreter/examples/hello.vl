@@ -1,0 +1,6 @@
+# Hello World in VL
+meta:hello,function,python
+
+fn:greet|i:str|o:str|ret:'Hello, ${i}!'
+
+export:greet

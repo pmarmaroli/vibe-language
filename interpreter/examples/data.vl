@@ -1,0 +1,12 @@
+# Data Processing Example
+meta:analyzeSales,data_processor,python
+
+fn:analyzeSales|i:arr|o:obj|
+  data:$i|
+  filter:amount>100|
+  groupBy:category|
+  agg:sum,amount|
+  sort:total,desc|
+  limit:10
+
+export:analyzeSales
