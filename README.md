@@ -74,8 +74,8 @@ vibe-language/
 │   ├── benchmarks/      # Performance and token efficiency benchmarks
 │   └── manual/          # Manual test scripts and debugging files
 ├── examples/            # VL example programs
-│   ├── basic/           # Hello world, functions
-│   ├── data/            # Data pipelines, APIs
+│   ├── basic/           # Hello world, functions, loops, CLI demos
+│   ├── data/            # Data pipelines, APIs, CSV processing, web scraping
 │   └── ui/              # UI components
 ├── docs/                # Documentation
 │   └── specification.md # Language specification
@@ -87,7 +87,7 @@ vibe-language/
 Create a file named `hello.vl`:
 
 ```vl
-# Simple hello world
+# Hello World in VL
 msg='Hello, VL!'
 @print(msg)
 
@@ -95,6 +95,17 @@ msg='Hello, VL!'
 fn:greet|i:str|o:str|ret:'Hello, ${i0}!'
 result=@greet('World')
 @print(result)
+```
+
+Or see the actual example at [examples/basic/hello.vl](examples/basic/hello.vl):
+
+```vl
+# Hello World in VL
+meta:hello,function,python
+
+fn:greet|i:str|o:str|ret:'Hello, ${i}!'
+
+export:greet
 ```
 
 Run it:
@@ -200,8 +211,8 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
 **Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
 
 **Multi-Target Compilation** (VL compiles to 5 languages):
-- ✅ **Python**: All tests passing (51/51) - Full feature support with configurable `all()`/`any()` optimization
-- ✅ **JavaScript**: All tests passing (14/14) - ES6+ with native operators
+- ✅ **Python**: All tests passing (53/53 features) - Full feature support with configurable `all()`/`any()` optimization
+- ✅ **JavaScript**: All tests passing (14/14 features) - ES6+ with native operators
 - ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
 - ✅ **C**: Basic implementation complete - ANSI C with standard library
 - ✅ **Rust**: Basic implementation complete - Safe Rust with std library
@@ -230,7 +241,7 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
   - Multiple assignment and tuple unpacking
   - Flask applications with decorators
   - File I/O operations
-- ✅ **Core Tests: 100%** (76/76 tests passing)
+- ✅ **Core Tests: 100%** (65+ tests passing across all targets)
 - ✅ **Round-Trip Validation: 100%** (10/10 Python→VL→Python cycles)
 - ✅ **All 5 Compilation Targets Working**
 - ✅ **CI/CD:** GitHub Actions on Python 3.9-3.11 × Ubuntu/Windows/macOS
@@ -261,8 +272,6 @@ python -m vl.py2vl app.py -o app.vl
 - ✅ `in` operator for membership testing
 - ✅ Imperative if/else blocks (not just ternary)
 - ✅ Type annotations (converted to VL types)
-- ⏭️ Context managers (`with` statements) - Future
-- ⏭️ Exception handling (`try/except`) - Future
 ### Where VL Excels
 
 **🎯 Multi-Stage Data Pipelines: 84.8% token savings**
@@ -360,29 +369,42 @@ Execution Success Rate: 100% (17/17 validation tests)
 
 ```
 vibe-language/
-├── interpreter/          # Core VL interpreter and compilers
+├── src/vl/              # Core VL compiler (Python package)
 │   ├── lexer.py         # Tokenization
 │   ├── parser.py        # AST generation
 │   ├── ast_nodes.py     # AST node definitions
-│   ├── codegen_python.py # Python code generator
-│   ├── codegen_js.py    # JavaScript code generator
+│   ├── compiler.py      # Main compiler
 │   ├── type_checker.py  # Type inference and validation
 │   ├── errors.py        # Error handling
-│   ├── vl.py            # CLI entry point
-│   ├── examples/        # Original example programs
-│   └── tests/           # Unit tests
+│   ├── cli.py           # CLI entry point
+│   ├── config.py        # Configuration settings
+│   ├── py_to_vl.py      # Python → VL converter
+│   ├── py2vl.py         # Python → VL CLI tool
+│   └── codegen/         # Code generators for all targets
+│       ├── base.py      # Base code generator
+│       ├── python.py    # Python code generator
+│       ├── javascript.py # JavaScript code generator
+│       ├── typescript.py # TypeScript code generator
+│       ├── c.py         # C code generator
+│       └── rust.py      # Rust code generator
+├── tests/               # All tests organized by type
+│   ├── unit/            # Unit tests for individual components
+│   ├── integration/     # Integration tests including Python↔VL roundtrips
+│   ├── codegen/         # Code generation tests for all 5 targets
+│   ├── benchmarks/      # Performance and token efficiency benchmarks
+│   └── manual/          # Manual test scripts and debugging files
 ├── examples/            # Example VL programs
-│   ├── javascript/      # JavaScript-specific examples
-│   └── python/          # Python-specific examples
+│   ├── basic/           # Hello world, functions, loops
+│   ├── data/            # Data pipelines, APIs, CSV processing
+│   └── ui/              # UI components
 ├── vibe-vscode/         # VS Code extension
 │   ├── syntaxes/        # TextMate grammar
 │   └── package.json     # Extension manifest
 ├── docs/                # Documentation
-│   ├── specification.md # Language specification
-├── benchmarks/          # Performance benchmarks
-├── vl.bat              # Windows CLI wrapper
-├── vl                  # Unix/Linux CLI wrapper
-└── README.md           # This file
+│   └── specification.md # Language specification
+├── vl.bat               # Windows CLI wrapper
+├── vl                   # Unix/Linux CLI wrapper
+└── README.md            # This file
 ```
 
 -----
@@ -834,29 +856,29 @@ VL supports both primitive and complex types:
 **Before any commit/push, run the comprehensive benchmark suite:**
 
 ```bash
-python run_benchmarks.py
+python tests/benchmarks/run_benchmarks.py
 ```
 
 This single script runs all tests and validation:
-- ✅ Example Programs (7 .vl files) - Validates all example code compiles
+- ✅ Example Programs (7+ .vl files) - Validates all example code compiles
 - ✅ Robustness Testing (15 complex scenarios) - Tests edge cases and complex patterns
 - ✅ Strength/Weakness Analysis (15 scenarios) - Comprehensive token efficiency analysis
-- ✅ Token Efficiency Benchmarks (13 test cases) - Focused performance testing
+- ✅ Token Efficiency Benchmarks (13+ test cases) - Focused performance testing
 
 **Expected Results (all tests must pass):**
-- Example Programs: 7/7 (100%)
+- Example Programs: 7+/7+ (100%)
 - Robustness: 15/15 (100%)
 - Strength Analysis: 14/15 compile (93.3%)
-- Benchmark Suite: 23.8% average efficiency
+- Benchmark Suite: 18-45% average efficiency depending on use case
 
 **The output provides all metrics needed to update documentation.**
 
 **Quick individual tests (for debugging only):**
 ```bash
-python test_examples.py              # Test example .vl files
-python test_robustness.py            # Test complex scenarios
-python test_strengths.py             # Full analysis with metrics
-python run_benchmarks.py  # Comprehensive benchmarks
+python tests/integration/test_examples.py        # Test example .vl files
+python tests/benchmarks/test_robustness.py       # Test complex scenarios
+python tests/benchmarks/test_strengths.py        # Full analysis with metrics
+python tests/benchmarks/run_benchmarks.py        # Comprehensive benchmarks
 ```
 
 -----
@@ -1077,7 +1099,7 @@ Goal: Mainstream language choice
 ### What Works (January 30, 2026)
 
 ✅ **Core Compiler Infrastructure**
-- All 76/76 core tests passing
+- Comprehensive test suite passing (65+ core tests across all targets)
 - Multi-target compilation (5 languages)
 - Type checking and validation
 - Comprehensive error messages
