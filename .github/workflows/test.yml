@@ -9,6 +9,7 @@ on:
 env:
   PYTHONIOENCODING: utf-8
   PYTHONUTF8: 1
+  PYTHONPATH: ${{ github.workspace }}/src
 
 jobs:
   test:
