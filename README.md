@@ -6,6 +6,33 @@
 [![Status: In Development](https://img.shields.io/badge/Status-In%20Development-orange.svg)]()
 [![Version: 0.1.3-alpha](https://img.shields.io/badge/Version-0.1.3--alpha-blue.svg)]()
 
+---
+
+## Overview
+
+VL (Vibe Language) is a universal, token-efficient programming language designed for optimal collaboration between humans and AI language models. It addresses fundamental challenges in AI-assisted development through high-level, intent-based constructs that minimize ambiguity and maximize semantic clarity.
+
+**Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
+
+**Multi-Target Compilation** (VL compiles to 5 languages):
+- ✅ **Python**: All tests passing (53/53 features) - Full feature support with configurable `all()`/`any()` optimization
+- ✅ **JavaScript**: All tests passing (14/14 features) - ES6+ with native operators
+- ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
+- ✅ **C**: Basic implementation complete - ANSI C with standard library
+- ✅ **Rust**: Basic implementation complete - Safe Rust with std library
+
+**Configuration System:** Centralized settings in `src/vl/config.py` control optimization behavior:
+- `BOOLEAN_CHAIN_MIN_LENGTH = 3` - Minimum chain length for all()/any() optimization
+- `OPTIMIZE_BOOLEAN_CHAINS = True` - Enable/disable boolean optimizations
+- Target-specific settings for file extensions, type hints, optimization flags
+
+**Universal IR Philosophy:** Like LLVM, WebAssembly, or Java bytecode, VL serves as a single intermediate representation that compiles to optimized native code for each platform. Each codegen backend optimizes for its target's idioms:
+- **Python**: Uses `all()`/`any()` for boolean chains (Pythonic + token efficient)
+- **JavaScript/TypeScript**: Uses native `&&`/`||` (idiomatic)
+- **C/Rust**: Uses native operators with parentheses (safe)
+
+---
+
 > **🎉 Latest Achievement (Jan 30, 2026):** VL now achieves **100% success rate** on real-world Python code conversion! Full support for `with` statements and `try/except` exception handling. All 10/10 real-world test patterns pass, including Flask apps, classes with decorators, file I/O, and exception handling. Python ↔ VL bidirectional workflow is now production-ready.
 
 -----
@@ -204,30 +231,7 @@ Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and p
 
 ---
 
-## Overview
-
-VL (Vibe Language) is a universal, token-efficient programming language designed for optimal collaboration between humans and AI language models. It addresses fundamental challenges in AI-assisted development through high-level, intent-based constructs that minimize ambiguity and maximize semantic clarity.
-
-**Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
-
-**Multi-Target Compilation** (VL compiles to 5 languages):
-- ✅ **Python**: All tests passing (53/53 features) - Full feature support with configurable `all()`/`any()` optimization
-- ✅ **JavaScript**: All tests passing (14/14 features) - ES6+ with native operators
-- ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
-- ✅ **C**: Basic implementation complete - ANSI C with standard library
-- ✅ **Rust**: Basic implementation complete - Safe Rust with std library
-
-**Configuration System:** Centralized settings in `src/vl/config.py` control optimization behavior:
-- `BOOLEAN_CHAIN_MIN_LENGTH = 3` - Minimum chain length for all()/any() optimization
-- `OPTIMIZE_BOOLEAN_CHAINS = True` - Enable/disable boolean optimizations
-- Target-specific settings for file extensions, type hints, optimization flags
-
-**Universal IR Philosophy:** Like LLVM, WebAssembly, or Java bytecode, VL serves as a single intermediate representation that compiles to optimized native code for each platform. Each codegen backend optimizes for its target's idioms:
-- **Python**: Uses `all()`/`any()` for boolean chains (Pythonic + token efficient)
-- **JavaScript/TypeScript**: Uses native `&&`/`||` (idiomatic)
-- **C/Rust**: Uses native operators with parentheses (safe)
-
-**Language Robustness & Test Coverage**
+## Language Robustness & Test Coverage**
 - ✅ **Real-World Python Conversion: 100%** (10/10 testable patterns)
   - Classes with methods and decorators
   - **Context managers (`with` statements)** ✨ NEW!
