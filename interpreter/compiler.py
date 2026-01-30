@@ -105,20 +105,24 @@ class Compiler:
             return generator.generate()
         
         elif self.target == TargetLanguage.JAVASCRIPT:
-            # TODO: Implement JavaScript code generator
-            raise NotImplementedError("JavaScript code generation not yet implemented")
+            from codegen_js import JSCodeGenerator
+            generator = JSCodeGenerator(self.ast)
+            return generator.generate()
         
         elif self.target == TargetLanguage.TYPESCRIPT:
-            # TODO: Implement TypeScript code generator
-            raise NotImplementedError("TypeScript code generation not yet implemented")
+            from codegen_ts import TSCodeGenerator
+            generator = TSCodeGenerator(self.ast)
+            return generator.generate()
         
         elif self.target == TargetLanguage.C:
-            # TODO: Implement C code generator
-            raise NotImplementedError("C code generation not yet implemented")
+            from codegen_c import CCodeGenerator
+            generator = CCodeGenerator(self.ast)
+            return generator.generate()
         
         elif self.target == TargetLanguage.RUST:
-            # TODO: Implement Rust code generator
-            raise NotImplementedError("Rust code generation not yet implemented")
+            from codegen_rust import RustCodeGenerator
+            generator = RustCodeGenerator(self.ast)
+            return generator.generate()
         
         else:
             raise ValueError(f"Unsupported target language: {self.target}")

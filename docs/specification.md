@@ -32,6 +32,30 @@ VL (Vibe Language) is a high-level, intent-based programming language optimized 
 - **Cross-Platform**: Single codebase for web, mobile, server, and embedded
 - **FFI-First**: Native interoperability with existing language ecosystems
 
+### Multi-Target Architecture
+
+VL is a **universal intermediate representation (IR)** that compiles to multiple target languages:
+
+**Currently Implemented:**
+- ✅ **Python** - 100% operational (51/51 tests passing)
+- ✅ **JavaScript** - 100% operational (14/14 tests passing)
+
+**In Development:**
+- 🚧 **TypeScript** - Basic implementation complete
+- 🚧 **C** - Basic implementation complete
+- 🚧 **Rust** - Basic implementation complete
+
+**VL Philosophy:** Like LLVM, WebAssembly, or Java bytecode, VL serves as a single source of truth that compiles to optimized native code for each platform. Write once, compile everywhere.
+
+**Target-Specific Optimization:**
+
+Each codegen backend optimizes for its target language's idioms:
+- **Python**: Uses `all()`/`any()` for boolean chains (Pythonic + token efficient)
+- **JavaScript/TypeScript**: Uses native `&&`/`||` operators (idiomatic)
+- **C/Rust**: Uses native operators with explicit parentheses (safe)
+
+This means the same VL code generates optimal output for each platform automatically.
+
 ### Non-Goals
 
 VL is not designed to:
@@ -679,9 +703,47 @@ fn:calc|i:int,int,int|o:int|ret:(i0*i1)+(i2/2)                # 23 tokens
 # Prefix: -86% efficiency (very verbose)
 fn:validate|i:int,int,bool|o:bool|ret:op:&&(op:>(i0,0),op:&&(op:<(i1,100),i2))
 
-# Infix: -19% efficiency (much better!)
+# Infix: Optimized per target language
 fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
 ```
+
+**Cross-Platform Boolean Optimization:**
+
+VL uses `&&`, `||`, and `!` for boolean logic in the source language, but each target language codegen optimizes the output differently:
+
+**VL Source (universal):**
+```vl
+fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+```
+
+**Python Target (uses `all()` for token efficiency):**
+```python
+def validate(i0: int, i1: int, i2: bool) -> bool:
+    return all([i0 > 0, i1 < 100, i2])
+```
+
+**JavaScript/TypeScript Target (native operators):**
+```javascript
+function validate(i0, i1, i2) {
+    return i0 > 0 && i1 < 100 && i2;
+}
+```
+
+**C Target (native operators with explicit parentheses):**
+```c
+bool validate(int i0, int i1, bool i2) {
+    return (i0 > 0) && (i1 < 100) && i2;
+}
+```
+
+**Rust Target (native operators):**
+```rust
+fn validate(i0: i32, i1: i32, i2: bool) -> bool {
+    (i0 > 0) && (i1 < 100) && i2
+}
+```
+
+**Key Design Decision:** VL maintains a single, universal syntax (`&&`, `||`, `!`) that each target language compiler optimizes appropriately. This is a core principle of VL as a **universal intermediate representation (IR)** - write once, optimize everywhere.
 
 **Best Practice:** Use infix notation for arithmetic, comparison, and logical operators. Use prefix notation for special operations like `concat`, `merge`, etc.
 

@@ -333,8 +333,9 @@ class JSCodeGenerator:
             
         elif isinstance(node, Operation):
             op_map = {
-                'and': '&&', 'or': '||', 'not': '!',
-                '==': '===', '!=': '!==' # Use strict equality
+                '&&': '&&', '||': '||', '!': '!',  # Already correct in VL
+                'and': '&&', 'or': '||', 'not': '!',  # Legacy support
+                '==': '===', '!=': '!=='  # Use strict equality
             }
             op = op_map.get(node.operator, node.operator)
             

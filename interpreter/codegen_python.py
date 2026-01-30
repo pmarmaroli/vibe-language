@@ -466,7 +466,7 @@ class PythonCodeGenerator:
             return f"None # TODO: {type(node).__name__}"
     
     def _generate_operation(self, node: Operation) -> str:
-        """Generate Python operation with minimal parentheses"""
+        """Generate Python operation with optimization for boolean chains"""
         operator_map = {
             '+': '+', '-': '-', '*': '*', '/': '/', '%': '%',
             '**': '**', '==': '==', '!=': '!=',
@@ -476,6 +476,22 @@ class PythonCodeGenerator:
         
         op = operator_map.get(node.operator, node.operator)
         
+        # OPTIMIZATION: Convert chained && to all() and || to any()
+        # This is more Pythonic and saves tokens in generated code
+        if node.operator in ('&&', '||') and len(node.operands) == 2:
+            # Collect all operands in the chain
+            conditions = []
+            self._collect_boolean_chain(node, node.operator, conditions)
+            
+            # If we have 3+ conditions, use all()/any()
+            if len(conditions) >= 3:
+                condition_strs = [self._generate_expression(cond) for cond in conditions]
+                if node.operator == '&&':
+                    return f"all([{', '.join(condition_strs)}])"
+                else:  # ||
+                    return f"any([{', '.join(condition_strs)}])"
+        
+        # Standard operation handling
         if len(node.operands) == 1:
             operand = self._generate_expression(node.operands[0])
             return f"{op} {operand}"
@@ -495,6 +511,17 @@ class PythonCodeGenerator:
         else:
             operands = ', '.join([self._generate_expression(o) for o in node.operands])
             return f"{op}({operands})"
+    
+    def _collect_boolean_chain(self, node: Expression, target_op: str, result: list):
+        """Recursively collect all operands from a chain of the same boolean operator"""
+        if isinstance(node, Operation) and node.operator == target_op and len(node.operands) == 2:
+            # Recursively flatten left side
+            self._collect_boolean_chain(node.operands[0], target_op, result)
+            # Recursively flatten right side
+            self._collect_boolean_chain(node.operands[1], target_op, result)
+        else:
+            # Base case: not a matching operation, add as-is
+            result.append(node)
     
     def _process_string_template(self, template: str) -> str:
         """Process string template with complex VL expressions in ${...}"""
