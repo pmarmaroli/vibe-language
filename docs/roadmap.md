@@ -39,8 +39,7 @@ VL aims to become the universal programming language for the AI era—enabling s
 - **Type-safe code generation with automatic typing imports**
 - **Array/object indexing support: `arr[0]`, `obj['key']`, nested indexing**
 - **Data pipeline operations: fixed `item` keyword scoping**
-- **Python FFI (Foreign Function Interface) with `py:` prefix**
-- **Advanced language features:**
+- **Python FFI (Foreign Function Interface) with `py:` prefix**- **VS Code extension (syntax highlighting) - Basic implementation**- **Advanced language features:**
   - Implicit variables: `x=5` instead of `v:x=5`
   - Implicit function calls: `print()` instead of `@print()`
   - Compound operators: `+=`, `-=`, `*=`, `/=`
@@ -67,13 +66,11 @@ VL aims to become the universal programming language for the AI era—enabling s
 
 ### 🚧 In Progress
 
-- VS Code extension (syntax highlighting)
 - Documentation website
 - Community setup (Discord/Slack)
 
 ### 📋 Next Up
 
-- VS Code syntax highlighting
 - More code examples (50+ across all domains)
 - Community Discord/Slack
 - Performance benchmarks
@@ -106,8 +103,8 @@ VL aims to become the universal programming language for the AI era—enabling s
 
 #### Tooling & Documentation
 
-- [ ] Command-line tool (`vl run`, `vl compile`)
-- [ ] VS Code extension (syntax highlighting)
+- [x] Command-line tool (`vl run`, `vl compile`)
+- [x] VS Code extension (syntax highlighting)
 - [ ] Documentation website
 - [ ] Getting started guide
 - [ ] API reference
@@ -131,9 +128,9 @@ VL aims to become the universal programming language for the AI era—enabling s
 #### Compiler Targets
 
 - [ ] VL → Python compiler (production-ready)
-- [ ] VL → JavaScript compiler
+- [x] VL → JavaScript compiler (in-progress)
 - [ ] VL → TypeScript compiler
-- [ ] Target selection (`--target python|javascript|typescript`)
+- [x] Target selection (`--target python|js`)
 - [ ] Optimization passes
 
 #### Language Features

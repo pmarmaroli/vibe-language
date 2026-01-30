@@ -7,32 +7,28 @@ This directory contains the reference implementation of the VL (Vibe Language) i
 **Version:** 0.1.0-alpha  
 **Phase:** Foundation - Active Development
 
-### What's Working ✅
-
-- ✅ **Lexer/Tokenizer** - Converts VL source code into tokens
-- ✅ **Parser** - Converts tokens into Abstract Syntax Tree (AST)
-- ✅ **VL → Python compiler** - Generate Python code from VL
-- ✅ **Interpreter** - Executes the AST via Python transpilation
-- ✅ **Command-line interface** - Basic `vl.py` entry point
-
 ### What's Working ✅ (v0.1.2 - 100% Operational)
 
 - ✅ **Lexer/Tokenizer** - Converts VL source code into tokens
 - ✅ **Parser** - Converts tokens into Abstract Syntax Tree (AST)
-- ✅ **VL → Python compiler** - Generate Python code from VL
+- ✅ **VL → Python compiler** - Generate Python code from VL (100% operational)
+- ✅ **VL → JavaScript compiler** - Generate JavaScript code from VL (in progress)
 - ✅ **Interpreter** - Executes the AST via Python transpilation
-- ✅ **Command-line interface** - Basic `vl.py` entry point
+- ✅ **Command-line interface** - `vl.py` with `--target` flag (python|js)
+- ✅ **CLI wrappers** - `vl.bat` (Windows) and `vl` (Unix/Linux)
 - ✅ **Type annotations** - List[Any], Dict[str, Any] with auto-imports
 - ✅ **Array/object indexing** - arr[0], obj['key'], nested indexing
 - ✅ **Data pipelines** - Fixed item keyword scoping in map/filter
 - ✅ **Python FFI** - Call Python libraries with py: prefix
 - ✅ **Execution validation** - 100% of generated code runs correctly
+- ✅ **VS Code extension** - Basic syntax highlighting for .vl files
 
 ### What's In Progress 🚧
 
+- 🚧 **JavaScript compiler** - Loops, data pipelines, API calls
 - 🚧 **Error handling** - Meaningful error messages
 - 🚧 **Standard library** - Built-in functions
-- 🚧 **Code Generation** - JavaScript/TypeScript targets
+- 📋 **TypeScript compiler** - Type-safe JavaScript generation
 - 📋 **Debugger** - Step-through debugging
 - 📋 **REPL** - Interactive shell
 
@@ -46,6 +42,43 @@ This directory contains the reference implementation of the VL (Vibe Language) i
 - No external dependencies (uses only Python standard library)
 
 ### Installation
+
+No installation needed! The interpreter uses only Python standard library.
+
+### Running VL Programs
+
+```bash
+# From the project root (using wrapper scripts)
+cd vibe-language
+
+# Windows
+.\vl.bat examples/hello.vl
+.\vl.bat program.vl --target js -o output.js
+
+# Unix/Linux
+./vl examples/hello.vl
+./vl program.vl --target js -o output.js
+
+# Or run directly
+python interpreter/vl.py examples/hello.vl
+python interpreter/vl.py program.vl --target js --debug
+```
+
+### Command-Line Options
+
+```bash
+vl.py [-h] [--version] [--debug] [--target {python,js}] 
+      [--output OUTPUT] [--tokens-only] [--ast-only] [file]
+
+Options:
+  --target {python,js}  Target language (default: python)
+  --output, -o OUTPUT   Output file for compiled code
+  --debug              Show generated code and execution details
+  --tokens-only        Show tokens only (debugging)
+  --ast-only           Show AST only (debugging)
+```
+
+### Original Setup
 
 ```bash
 # Clone the repository

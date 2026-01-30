@@ -1,0 +1,35 @@
+{
+  "name": "vibe-language",
+  "displayName": "Vibe Language",
+  "description": "Language support for VL (Vibe Language)",
+  "version": "0.1.0",
+  "publisher": "vibe",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "vl",
+        "aliases": [
+          "VL",
+          "vibe"
+        ],
+        "extensions": [
+          ".vl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vl",
+        "scopeName": "source.vl",
+        "path": "./syntaxes/vl.tmLanguage.json"
+      }
+    ]
+  }
+}
