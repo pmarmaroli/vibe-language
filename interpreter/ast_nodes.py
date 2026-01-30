@@ -73,9 +73,17 @@ class FunctionDef(Statement):
 
 @dataclass
 class VariableDef(Statement):
-    """v:name=value or v:name:type=value"""
+    """v:name=value or v:name:type=value or name=value (implicit)"""
     name: str
     type_annotation: Optional[Type]
+    value: 'Expression'
+
+
+@dataclass
+class CompoundAssignment(Statement):
+    """name+=value, name-=value, name*=value, name/=value"""
+    name: str
+    operator: str  # '+', '-', '*', '/'
     value: 'Expression'
 
 
@@ -119,6 +127,15 @@ class WhileLoop(Statement):
 class Expression(ASTNode):
     """Base class for all expressions"""
     pass
+
+
+@dataclass
+class FunctionExpr(Expression):
+    """fn:name|i:type,type|o:type|body - Function as expression (for object properties)"""
+    name: str
+    input_types: List['Type']
+    output_type: 'Type'
+    body: List['Statement']
 
 
 @dataclass
@@ -183,6 +200,13 @@ class FunctionCall(Expression):
     """Function call: funcName(arg1,arg2)"""
     callee: Expression
     arguments: List[Expression]
+
+
+@dataclass
+class RangeExpr(Expression):
+    """Range expression: start..end (e.g., 0..10)"""
+    start: Expression
+    end: Expression
 
 
 # Domain-Specific Constructs

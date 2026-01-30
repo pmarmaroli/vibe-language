@@ -28,3 +28,27 @@ The benchmark compares:
 `Token Reduction = 1 - (VL_Tokens / Python_Tokens)`
 
 High token reduction percentages directly translate to lower API costs and faster generation times when using LLMs.
+
+## Current Results (January 30, 2026)
+
+**Benchmark Suite Results** (13 test cases):
+- **Average Token Efficiency: 23.8%**
+- **Total: 262 VL tokens vs 344 Python tokens**
+
+**Best Performers:**
+- Data Pipeline: 45.2% savings
+- Simple Function: 41.7% savings
+- Boolean Logic: 34.4% savings
+- Conditional Return: 34.4% savings
+- Complex Logic: 25.5% savings
+- Recursion: 25.6% savings
+
+**Features Tested:**
+- ✅ Infix operators (+, -, *, /, &&, ||, !)
+- ✅ Direct function calls with @
+- ✅ Pipeline from expressions
+- ✅ Recursion with @
+- ✅ Data transformations
+- ✅ Complex conditionals
+
+**Note:** These results use modern VL syntax with infix operators. The older `op:` prefix syntax showed lower efficiency and is no longer recommended.

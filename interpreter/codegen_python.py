@@ -68,6 +68,8 @@ class PythonCodeGenerator:
             self._generate_function(node)
         elif isinstance(node, VariableDef):
             self._generate_variable(node)
+        elif isinstance(node, CompoundAssignment):
+            self._generate_compound_assignment(node)
         elif isinstance(node, ReturnStmt):
             self._generate_return(node)
         elif isinstance(node, DirectCall):
@@ -110,11 +112,40 @@ class PythonCodeGenerator:
         
         self.indent_level -= 1
     
+    def _generate_function_expr(self, node: FunctionExpr) -> str:
+        """Generate Python lambda or inline function for function expressions"""
+        # Implicit parameter naming i0, i1... based on input types
+        params = ', '.join([f"i{idx}" for idx in range(len(node.input_types))])
+        
+        # For simple single-expression returns, use lambda
+        if len(node.body) == 1 and isinstance(node.body[0], ReturnStmt):
+            return_expr = self._generate_expression(node.body[0].value)
+            return f"lambda {params}: {return_expr}"
+        
+        # For complex bodies, we'd need to define a function inline
+        # For now, generate a lambda that calls a nested function pattern
+        # This is a simplified implementation
+        if node.body:
+            # Try to generate as lambda if body is simple enough
+            body_parts = []
+            for stmt in node.body:
+                if isinstance(stmt, ReturnStmt):
+                    body_parts.append(self._generate_expression(stmt.value))
+            if body_parts:
+                return f"lambda {params}: {body_parts[-1]}"
+        
+        return f"lambda {params}: None  # Complex function body"
+    
     def _generate_variable(self, node: VariableDef):
         """Generate Python variable assignment"""
         value = self._generate_expression(node.value)
         type_hint = f": {node.type_annotation.name}" if node.type_annotation else ""
         self._emit(f"{node.name}{type_hint} = {value}")
+    
+    def _generate_compound_assignment(self, node: CompoundAssignment):
+        """Generate Python compound assignment (+=, -=, *=, /=)"""
+        value = self._generate_expression(node.value)
+        self._emit(f"{node.name} {node.operator}= {value}")
     
     def _generate_return(self, node: ReturnStmt):
         """Generate Python return statement"""
@@ -193,17 +224,22 @@ class PythonCodeGenerator:
     
     def _generate_data_pipeline_expr(self, node: DataPipeline) -> str:
         """Generate data pipeline as an expression (for return statements)"""
-        source = self._generate_expression(node.source)
-        result = source
+        # Generate the source expression
+        source_expr = self._generate_expression(node.source)
         
+        # Build the pipeline by chaining comprehensions
+        # Start with the source
+        result = source_expr
+        
+        # Apply each operation in sequence
         for op in node.operations:
             if isinstance(op, FilterOp):
                 condition = self._generate_expression(op.condition)
-                result = f"[x for x in {result} if {condition}]"
+                result = f"[x for x in {result} if ({condition})]"
             elif isinstance(op, MapOp):
                 if op.expression:
                     expr = self._generate_expression(op.expression)
-                    result = f"[{expr} for x in {result}]"
+                    result = f"[({expr}) for x in {result}]"
         
         return result
     
@@ -244,6 +280,11 @@ class PythonCodeGenerator:
         if isinstance(node, NumberLiteral):
             return str(node.value)
         
+        elif isinstance(node, RangeExpr):
+            start = self._generate_expression(node.start)
+            end = self._generate_expression(node.end)
+            return f"range({start}, {end})"
+        
         elif isinstance(node, StringLiteral):
             if '${' in node.value:
                 # Parse complex expressions in template strings
@@ -278,9 +319,17 @@ class PythonCodeGenerator:
             return f"[{elements}]"
         
         elif isinstance(node, ObjectLiteral):
-            pairs = ', '.join([f"'{k}': {self._generate_expression(v)}" 
-                              for k, v in node.pairs])
-            return f"{{{pairs}}}"
+            pair_strs = []
+            for k, v in node.pairs:
+                if isinstance(v, FunctionExpr):
+                    # Generate lambda or method reference for function expressions
+                    pair_strs.append(f"'{k}': {self._generate_function_expr(v)}")
+                else:
+                    pair_strs.append(f"'{k}': {self._generate_expression(v)}")
+            return f"{{{', '.join(pair_strs)}}}"
+        
+        elif isinstance(node, FunctionExpr):
+            return self._generate_function_expr(node)
         
         elif isinstance(node, IfStmt):
             # If statement can be used as expression (ternary)

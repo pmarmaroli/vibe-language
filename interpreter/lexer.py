@@ -78,6 +78,11 @@ class TokenType(Enum):
     PIPE = auto()           # |
     COMMA = auto()          # ,
     EQUALS = auto()         # =
+    PLUS_EQUALS = auto()    # +=
+    MINUS_EQUALS = auto()   # -=
+    TIMES_EQUALS = auto()   # *=
+    DIV_EQUALS = auto()     # /=
+    DOTDOT = auto()         # .. (range operator)
     QUESTION = auto()       # ?
     DOLLAR = auto()         # $
     AT = auto()             # @
@@ -230,12 +235,23 @@ class Lexer:
                 self.advance()
     
     def read_number(self) -> Token:
-        """Read a numeric literal"""
+        """Read a numeric literal. Stops at .. (range operator)"""
         start_line = self.line
         start_col = self.column
         num_str = ''
+        has_decimal = False
         
         while self.current_char() and (self.current_char().isdigit() or self.current_char() == '.'):
+            # Check for range operator (..)
+            if self.current_char() == '.' and self.peek_char() == '.':
+                break  # Stop before range operator
+            
+            # Handle decimal point
+            if self.current_char() == '.':
+                if has_decimal:
+                    break  # Already have decimal, this is something else
+                has_decimal = True
+            
             num_str += self.current_char()
             self.advance()
         
@@ -358,11 +374,15 @@ class Lexer:
             # But wait, what if it's a number like 1.2? read_number handles it.
             # What if it is a dot operator?
             if char == '.':
+                # Check for range operator (..) first!
+                if self.peek_char() == '.':
+                    token = Token(TokenType.DOTDOT, '..', self.line, self.column)
+                    self.tokens.append(token)
+                    self.advance()
+                    self.advance()
+                    continue
+                
                 # Check if it's part of a number (e.g. .5)
-                # But read_number expects digit first usually, or handled here?
-                # My read_number splits on isdigit or DOT. 
-                # But here I am dispatching on `char.isdigit()`.
-                # If char is `.` and next is digit, it's a number.
                 if self.peek_char() and self.peek_char().isdigit():
                      self.tokens.append(self.read_number())
                      continue
@@ -392,6 +412,21 @@ class Lexer:
                 self.advance()
                 continue
             
+            # Compound assignment operators and range operator
+            compound_ops = {
+                '+=': TokenType.PLUS_EQUALS,
+                '-=': TokenType.MINUS_EQUALS,
+                '*=': TokenType.TIMES_EQUALS,
+                '/=': TokenType.DIV_EQUALS,
+                '..': TokenType.DOTDOT,
+            }
+            if two_char in compound_ops:
+                token = Token(compound_ops[two_char], two_char, self.line, self.column)
+                self.tokens.append(token)
+                self.advance()
+                self.advance()
+                continue
+            
             # Single-character operators
             if char in self.OPERATORS:
                 token = Token(self.OPERATORS[char], char, self.line, self.column)
@@ -406,7 +441,8 @@ class Lexer:
                 ',': TokenType.COMMA,
                 '=': TokenType.EQUALS,
                 '?': TokenType.QUESTION,
-                '$': TokenType.DOLLAR,                '@': TokenType.AT,                '@': TokenType.AT,
+                '$': TokenType.DOLLAR,
+                '@': TokenType.AT,
                 '(': TokenType.LPAREN,
                 ')': TokenType.RPAREN,
                 '{': TokenType.LBRACE,

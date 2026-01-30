@@ -25,6 +25,7 @@ class Parser:
         self.tokens = tokens
         self.pos = 0
         self.current_token = self.tokens[0] if tokens else None
+        self.parsing_pipeline_operation = False  # Flag to prevent nested pipeline parsing
     
     def error(self, message: str) -> ParseError:
         """Create parse error with current token location"""
@@ -110,7 +111,12 @@ class Parser:
         
         # Parse statements
         statements = []
-        while self.current_token and self.current_token.type not in (TokenType.EXPORT, TokenType.EOF):
+        loop_count = 0
+        max_loops = 1000  # Safety limit
+        while (self.current_token and self.current_token.type not in (TokenType.EXPORT, TokenType.EOF) and 
+               loop_count < max_loops):
+            loop_count += 1
+            
             if self.current_token.type == TokenType.NEWLINE:
                 self.skip_newlines()
                 continue
@@ -206,12 +212,25 @@ class Parser:
         if self.match(TokenType.FN):
             return self.parse_function_def()
         
-        # Variable definition
+        # Variable definition (explicit v: prefix)
         elif self.match(TokenType.VAR):
             return self.parse_variable_def()
         
+        # Implicit variable definition: name=value (no v: prefix)
+        # Also handles compound assignment: name+=value, name-=value, etc.
+        # Also handles implicit function calls: func(args)
+        elif self.match(TokenType.IDENTIFIER):
+            next_tok = self.peek(1)
+            if next_tok and next_tok.type in (TokenType.EQUALS, TokenType.PLUS_EQUALS, 
+                                               TokenType.MINUS_EQUALS, TokenType.TIMES_EQUALS,
+                                               TokenType.DIV_EQUALS):
+                return self.parse_implicit_variable_or_compound()
+            # Implicit function call: func(args) or obj.method(args)
+            elif next_tok and next_tok.type in (TokenType.LPAREN, TokenType.DOT):
+                return self.parse_implicit_call()
+        
         # Return statement
-        elif self.match(TokenType.RET):
+        if self.match(TokenType.RET):
             return self.parse_return_stmt()
         
         # If statement (conditional)
@@ -296,11 +315,67 @@ class Parser:
             if stmt:
                 body.append(stmt)
             
+            # Only consume PIPE if it's a statement separator, not a pipeline operation  
             if self.match(TokenType.PIPE):
-                self.advance()
+                # Check if this is a pipeline operation (|filter:, |map:, etc.)
+                next_tok = self.peek()
+                if next_tok and next_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
+                    # This PIPE is part of a pipeline expression, don't consume it here
+                    # It should have been consumed by the expression parser
+                    pass
+                else:
+                    # This is a statement separator, consume it
+                    self.advance()
 
         
         return FunctionDef(
+            line=token.line, column=token.column,
+            name=name,
+            input_types=input_types,
+            output_type=output_type,
+            body=body
+        )
+    
+    def parse_function_expr(self) -> FunctionExpr:
+        """Parse: fn:name|i:type,type|o:type|body - Function as expression inside objects"""
+        token = self.expect(TokenType.FN)
+        self.expect(TokenType.COLON)
+        
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.PIPE)
+        
+        # Parse inputs
+        self.expect(TokenType.INPUT)
+        self.expect(TokenType.COLON)
+        input_types = self.parse_type_list()
+        self.expect(TokenType.PIPE)
+        
+        # Parse output
+        self.expect(TokenType.OUTPUT)
+        self.expect(TokenType.COLON)
+        output_type = self.parse_type()
+        self.expect(TokenType.PIPE)
+        
+        # Parse body - for function expressions, stop at } or , (object delimiters)
+        body = []
+        while not self.match(TokenType.EOF, TokenType.RBRACE, TokenType.COMMA):
+            if self.match(TokenType.NEWLINE):
+                self.skip_newlines()
+                continue
+            
+            stmt = self.parse_statement()
+            if stmt:
+                body.append(stmt)
+            
+            # Consume pipe separators within the function body
+            if self.match(TokenType.PIPE):
+                next_tok = self.peek()
+                if next_tok and next_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
+                    pass  # Pipeline operation, don't consume
+                else:
+                    self.advance()
+        
+        return FunctionExpr(
             line=token.line, column=token.column,
             name=name,
             input_types=input_types,
@@ -336,6 +411,52 @@ class Parser:
         
         raise self.error(f"Expected type, got {token.type.name}")
     
+    def parse_implicit_variable_or_compound(self) -> Union[VariableDef, 'CompoundAssignment']:
+        """Parse: name=value (implicit variable) or name+=value (compound assignment)"""
+        token = self.current_token
+        name = self.expect(TokenType.IDENTIFIER).value
+        
+        # Check for compound assignment operators
+        if self.match(TokenType.PLUS_EQUALS):
+            self.advance()
+            value = self.parse_expression()
+            return CompoundAssignment(
+                line=token.line, column=token.column,
+                name=name, operator='+', value=value
+            )
+        elif self.match(TokenType.MINUS_EQUALS):
+            self.advance()
+            value = self.parse_expression()
+            return CompoundAssignment(
+                line=token.line, column=token.column,
+                name=name, operator='-', value=value
+            )
+        elif self.match(TokenType.TIMES_EQUALS):
+            self.advance()
+            value = self.parse_expression()
+            return CompoundAssignment(
+                line=token.line, column=token.column,
+                name=name, operator='*', value=value
+            )
+        elif self.match(TokenType.DIV_EQUALS):
+            self.advance()
+            value = self.parse_expression()
+            return CompoundAssignment(
+                line=token.line, column=token.column,
+                name=name, operator='/', value=value
+            )
+        
+        # Simple assignment: name=value
+        self.expect(TokenType.EQUALS)
+        value = self.parse_expression()
+        
+        return VariableDef(
+            line=token.line, column=token.column,
+            name=name,
+            type_annotation=None,
+            value=value
+        )
+    
     def parse_variable_def(self) -> VariableDef:
         """Parse: v:name=value or v:name:type=value"""
         token = self.expect(TokenType.VAR)
@@ -368,6 +489,17 @@ class Parser:
         return ReturnStmt(
             line=token.line, column=token.column,
             value=value
+        )
+    
+    def parse_implicit_call(self) -> DirectCall:
+        """Parse: function(args) or obj.method(args) - Implicit call without @ prefix"""
+        token = self.current_token
+        # Parse the entire expression (identifier with possible member access and call)
+        function_expr = self.parse_expression()
+        
+        return DirectCall(
+            line=token.line, column=token.column,
+            function=function_expr
         )
     
     def parse_direct_call(self) -> DirectCall:
@@ -636,7 +768,8 @@ class Parser:
         source = self.parse_expression()
         
         operations = []
-        while self.match(TokenType.PIPE) and not self.match(TokenType.NEWLINE, TokenType.EOF):
+        max_ops = 100  # Safety limit
+        while self.match(TokenType.PIPE) and not self.match(TokenType.NEWLINE, TokenType.EOF) and len(operations) < max_ops:
             self.advance()
             
             # Parse data operations
@@ -724,7 +857,22 @@ class Parser:
     
     def parse_expression(self) -> Expression:
         """Parse an expression"""
-        return self.parse_comparison()
+        return self.parse_logical()
+    
+    def parse_logical(self) -> Expression:
+        """Parse logical AND/OR operators"""
+        left = self.parse_comparison()
+        
+        while self.match(TokenType.AND, TokenType.OR):
+            op_token = self.advance()
+            right = self.parse_comparison()
+            left = Operation(
+                line=op_token.line, column=op_token.column,
+                operator=op_token.value,
+                operands=[left, right]
+            )
+        
+        return left
     
     def parse_comparison(self) -> Expression:
         """Parse comparison operators"""
@@ -786,7 +934,7 @@ class Parser:
         return self.parse_postfix()
 
     def parse_postfix(self) -> Expression:
-        """Parse postfix expressions (calls, member access)"""
+        """Parse postfix expressions (calls, member access, pipeline operations)"""
         expr = self.parse_primary()
         
         while True:
@@ -818,6 +966,41 @@ class Parser:
                     arguments=args
                 )
             
+            # Pipeline operations: expr|filter:...|map:...  
+            elif self.match(TokenType.PIPE) and not self.parsing_pipeline_operation:
+                peek_tok = self.peek(1)  # Look ahead to next token
+                if peek_tok and peek_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
+                    # Parse pipeline operations starting from current expression
+                    operations = []
+                    max_ops = 100  # Safety limit
+                    self.parsing_pipeline_operation = True  # Set flag
+                    try:
+                        while (self.match(TokenType.PIPE) and self.peek(1) and 
+                               self.peek(1).type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE) and
+                               len(operations) < max_ops):
+                            self.advance()  # consume PIPE, now at operation token
+                            
+                            # Now current token is FILTER, MAP, or PARSE
+                            if self.current_token.type == TokenType.FILTER:
+                                operations.append(self.parse_filter_op())
+                            elif self.current_token.type == TokenType.MAP:
+                                operations.append(self.parse_map_op())
+                            elif self.current_token.type == TokenType.PARSE:
+                                operations.append(self.parse_parse_op())
+                        
+                        # Create a DataPipeline with the expression as source
+                        expr = DataPipeline(
+                            line=expr.line,
+                            column=expr.column,
+                            source=expr,
+                            operations=operations
+                        )
+                    finally:
+                        self.parsing_pipeline_operation = False  # Clear flag
+                else:
+                    # PIPE but not a pipeline operation, stop parsing postfix
+                    break
+            
             else:
                 break
                 
@@ -827,14 +1010,26 @@ class Parser:
         """Parse primary expressions (literals, identifiers, etc.)"""
         token = self.current_token
         
-        # Number literal
+        # Number literal (and check for range: 0..10)
         if self.match(TokenType.NUMBER):
             self.advance()
             value = float(token.value) if '.' in token.value else int(token.value)
-            return NumberLiteral(
+            num_literal = NumberLiteral(
                 line=token.line, column=token.column,
                 value=value
             )
+            
+            # Check for range operator (..)
+            if self.match(TokenType.DOTDOT):
+                self.advance()
+                end_expr = self.parse_primary()  # Parse the end value
+                return RangeExpr(
+                    line=token.line, column=token.column,
+                    start=num_literal,
+                    end=end_expr
+                )
+            
+            return num_literal
         
         # String literal
         if self.match(TokenType.STRING):
@@ -853,6 +1048,27 @@ class Parser:
             return VariableRef(
                 line=token.line, column=token.column,
                 name=name
+            )
+        
+        # Direct function call (@func(args))
+        if self.match(TokenType.AT):
+            self.advance()
+            func_name = self.expect(TokenType.IDENTIFIER).value
+            self.expect(TokenType.LPAREN)
+            
+            args = []
+            while not self.match(TokenType.RPAREN):
+                args.append(self.parse_expression())
+                if self.match(TokenType.COMMA):
+                    self.advance()
+            self.expect(TokenType.RPAREN)
+            
+            # Create FunctionCall with Identifier as callee
+            callee = Identifier(line=token.line, column=token.column, name=func_name)
+            return FunctionCall(
+                line=token.line, column=token.column,
+                callee=callee,
+                arguments=args
             )
         
         # Operation (op:+(...))
@@ -950,14 +1166,19 @@ class Parser:
         )
     
     def parse_object_literal(self) -> ObjectLiteral:
-        """Parse: {key:value,key2:value2}"""
+        """Parse: {key:value,key2:value2} - values can include fn: for methods"""
         token = self.expect(TokenType.LBRACE)
         
         pairs = []
         while not self.match(TokenType.RBRACE):
             key = self.expect(TokenType.IDENTIFIER).value
             self.expect(TokenType.COLON)
-            value = self.parse_expression()
+            
+            # Check if value is a function expression (fn:name|...)
+            if self.match(TokenType.FN):
+                value = self.parse_function_expr()
+            else:
+                value = self.parse_expression()
             pairs.append((key, value))
             
             if self.match(TokenType.COMMA):

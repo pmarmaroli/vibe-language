@@ -1,8 +1,8 @@
 
 # VL Language Roadmap
 
-**Version:** 1.0  
-**Last Updated:** January 29, 2026  
+**Version:** 1.1  
+**Last Updated:** January 30, 2026  
 **Status:** Public Preview
 
 -----
@@ -27,23 +27,36 @@ VL aims to become the universal programming language for the AI era—enabling s
 - Parser (AST generation)
 - Interpreter (MVP via Python transpilation)
 - VL → Python compiler (MVP)
-- Example programs
+- Example programs (7/7 compile successfully)
 - Technical documentation
-- **Direct call syntax (`@`) for improved token efficiency**
+- **Direct call syntax (`@`) for improved token efficiency and recursion**
 - **Benchmark suite for token efficiency validation**
-- **Robustness testing: 100% pass rate on complex scenarios**
+- **Robustness testing: 100% pass rate (15/15 complex scenarios)**
+- **Comprehensive strength/weakness analysis (15 scenarios)**
 - **Advanced features:**
   - Nested loops with any variable names
   - Complex string interpolation with expressions
   - Early returns in conditionals
   - API calls as expressions
+  - UI component parsing (state/props/handlers)
   - Context-aware keyword handling
+  - **Infix operator support (+, -, *, /, &&, ||, !, ==, !=, <, >, <=, >=)**
+  - **Pipeline operations from any expression (variables, API calls, returns)**
+  - **Logical operator precedence (parse_logical layer)**
+  - **Parser infinite loop protection**
+
+**Current Metrics (January 30, 2026):**
+- Focused Benchmark: 23.8% average efficiency (13 cases)
+- Comprehensive Analysis: 12.6% average efficiency (15 scenarios)
+- Peak Savings: 75.5% (multi-stage data pipelines)
+- Example Programs: 100% (7/7 compile)
+- Compilation Success: 93.3% (14/15 real-world scenarios)
+- Robustness: 100% (15/15 complex patterns)
 
 ### 🚧 In Progress
 
-- Test suite
-- Documentation website
 - Error handling improvements
+- Code generation quality improvements (nested comprehensions)
 
 ### 📋 Next Up
 

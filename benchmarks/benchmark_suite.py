@@ -46,15 +46,15 @@ def run_benchmark():
     test_cases = [
         {
             "name": "Hello World",
-            "vl": "@print('Hello World')"
+            "vl": "print('Hello World')"  # Implicit call (no @)
         },
         {
             "name": "Simple Function",
-            "vl": "fn:add|i:int,int|o:int|ret:op:+(i0,i1)"
+            "vl": "fn:add|i:int,int|o:int|ret:i0+i1"
         },
         {
             "name": "API Call",
-            "vl": "@requests.get('users/active')"
+            "vl": "requests.get('users/active')"  # Implicit call
         },
         {
             "name": "Data Pipeline",
@@ -62,27 +62,39 @@ def run_benchmark():
         },
         {
             "name": "Complex Logic",
-            "vl": "fn:process|i:arr|o:arr|v:limit=100|for:item,i0|if:op:>(item.val,limit)?op:*(item.val,2):item.val|ret:i0"
+            "vl": "fn:process|i:arr|o:arr|limit=100|for:item,i0|if:item.val>limit?item.val*2:item.val|ret:i0"  # Implicit var
         },
         {
             "name": "Conditional Return",
-            "vl": "fn:max|i:int,int|o:int|ret:if:op:>(i0,i1)?i0:i1"
+            "vl": "fn:max|i:int,int|o:int|ret:if:i0>i1?i0:i1"
         },
         {
             "name": "Array Map",
-            "vl": "fn:double_all|i:arr|o:arr|ret:data:i0|map:op:*(item,2)"
+            "vl": "fn:double_all|i:arr|o:arr|ret:data:i0|map:item*2"
         },
         {
             "name": "Variable Assignment",
-            "vl": "v:count=0|v:name='Alice'|v:total=op:+(count,10)"
+            "vl": "count=0|name='Alice'|total=count+10"  # Implicit vars (no v:)
         },
         {
             "name": "Loop with Accumulator",
-            "vl": "v:total=0|for:idx,range(0,10)|v:total=op:+(total,idx)"
+            "vl": "total=0|for:i,0..10|total+=i"  # Range shorthand + compound +=
         },
         {
             "name": "Multi-step Calculation",
-            "vl": "v:x=5|v:y=10|v:result=op:/(op:+(x,y),2)"
+            "vl": "x=5|y=10|result=(x+y)/2"  # Implicit vars
+        },
+        {
+            "name": "Boolean Logic",
+            "vl": "fn:validate|i:int,int|o:bool|ret:i0>0&&i1<100"
+        },
+        {
+            "name": "Recursion",
+            "vl": "fn:fact|i:int|o:int|if:i0<=1?ret:1:ret:i0*@fact(i0-1)"
+        },
+        {
+            "name": "Pipeline from Expression",
+            "vl": "fn:fetchActive|i:str|o:arr|result=api:GET,i0|ret:$result|filter:status=='active'"  # Implicit var
         }
     ]
     
