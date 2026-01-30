@@ -323,25 +323,6 @@ Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and p
 | **Type Safety** | ✅ Optional | ⚠️ Optional | ✅ Strong | ✅ Strong |
 | **Learning Curve** | ✅ None (transparent) | ✅ Easy | ⚠️ Moderate | ❌ Steep |
 
-### 💰 Cost Savings Calculator
-
-**Individual Developer:**
-- GitHub Copilot: $20/month
-- With VL optimization: $11/month (45% savings)
-- **Annual savings: $108**
-
-**10-Developer Team:**
-- GitHub Copilot: $200/month
-- With VL optimization: $110/month
-- **Annual savings: $1,080**
-
-**100-Developer Enterprise:**
-- AI coding costs: ~$10,000/month (Copilot + Claude API)
-- With VL optimization: ~$5,500/month
-- **Annual savings: $54,000**
-
-*Based on 45.1% average token reduction across typical coding workflows*
-
 ### Who Should Use VL?
 
 **Use VL Transparent Mode (VS Code extension - coming soon) if you:**
