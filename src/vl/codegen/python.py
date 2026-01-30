@@ -107,7 +107,9 @@ class PythonCodeGenerator:
     
     def _generate_statement(self, node):
         """Generate code for a statement"""
-        if isinstance(node, FunctionDef):
+        if isinstance(node, ClassDef):
+            self._generate_class(node)
+        elif isinstance(node, FunctionDef):
             self._generate_function(node)
         elif isinstance(node, VariableDef):
             self._generate_variable(node)
@@ -119,6 +121,8 @@ class PythonCodeGenerator:
             self._generate_direct_call(node)
         elif isinstance(node, IfStmt):
             self._generate_if_stmt(node)
+        elif isinstance(node, IfElseBlock):
+            self._generate_if_else_block(node)
         elif isinstance(node, ForLoop):
             self._generate_for_loop(node)
         elif isinstance(node, WhileLoop):
@@ -131,15 +135,66 @@ class PythonCodeGenerator:
             self._generate_file_operation(node)
         elif isinstance(node, UIComponent):
             self._generate_ui_component(node)
+        elif isinstance(node, PythonStmt):
+            self._generate_python_stmt(node)
         else:
             # Unsupported statement type - likely needs implementation
             self._emit(f"# UNSUPPORTED: {type(node).__name__} not yet implemented")
             self._emit(f"# Please report this at: github.com/vibe-language/issues")
     
-    def _generate_function(self, node: FunctionDef):
+    def _generate_class(self, node: 'ClassDef'):
+        """Generate Python class definition"""
+        # Handle decorators
+        if node.decorators:
+            for decorator in node.decorators:
+                self._emit(f"@{self._generate_decorator(decorator)}")
+        
+        # Class header
+        bases_str = ""
+        if node.base_classes:
+            bases_str = f"({', '.join(node.base_classes)})"
+        self._emit(f"class {node.name}{bases_str}:")
+        
+        self.indent_level += 1
+        
+        # Generate class attributes (if any)
+        if node.attributes:
+            for attr in node.attributes:
+                self._generate_statement(attr)
+        
+        # Generate class methods
+        if node.methods:
+            for method in node.methods:
+                self._generate_function(method, is_method=True)
+        
+        # Empty class body fallback
+        if not node.methods and not node.attributes:
+            self._emit("pass")
+        
+        self.indent_level -= 1
+        self._emit("")  # blank line after class
+    
+    def _generate_decorator(self, decorator: 'Decorator') -> str:
+        """Generate decorator string"""
+        if decorator.args:
+            args_str = ", ".join(self._generate_expression(arg) for arg in decorator.args)
+            return f"{decorator.name}({args_str})"
+        return decorator.name
+    
+    def _generate_function(self, node: FunctionDef, is_method: bool = False):
         """Generate Python function definition"""
+        # Handle decorators (for standalone functions)
+        if node.decorators and not is_method:
+            for decorator in node.decorators:
+                self._emit(f"@{self._generate_decorator(decorator)}")
+        
         # Implicit parameter naming i0, i1... based on input types
         params = []
+        
+        # For methods, add self parameter
+        if is_method:
+            params.append("self")
+        
         for idx, typ in enumerate(node.input_types):
             py_type = self._convert_type_annotation(typ.name)
             params.append(f"i{idx}: {py_type}")
@@ -225,6 +280,26 @@ class PythonCodeGenerator:
         else:
             self._emit(self._generate_expression(node.false_expr))
         self.indent_level -= 1
+    
+    def _generate_if_else_block(self, node):
+        """Generate Python if/else block (imperative style)"""
+        condition = self._generate_expression(node.condition)
+        self._emit(f"if {condition}:")
+        
+        self.indent_level += 1
+        if node.if_body:
+            for stmt in node.if_body:
+                self._generate_statement(stmt)
+        else:
+            self._emit("pass")  # Empty if body
+        self.indent_level -= 1
+        
+        if node.else_body:
+            self._emit("else:")
+            self.indent_level += 1
+            for stmt in node.else_body:
+                self._generate_statement(stmt)
+            self.indent_level -= 1
     
     def _generate_for_loop(self, node: ForLoop):
         """Generate Python for loop"""
@@ -375,6 +450,16 @@ class PythonCodeGenerator:
         self._emit(f"return None  # React JSX would go here")
         
         self.indent_level -= 1
+    
+    def _generate_python_stmt(self, node: 'PythonStmt'):
+        """Generate code for Python statement passthrough"""
+        # The code may have @@@ as line separators - convert them back to newlines
+        code = node.code.replace('@@@', '\n')
+        # Split into lines and emit each with proper indentation
+        lines = code.split('\n')
+        for line in lines:
+            if line.strip():  # Skip empty lines
+                self._emit(line)
 
     def _generate_expression(self, node: Expression) -> str:
         """Generate Python expression"""
@@ -428,6 +513,11 @@ class PythonCodeGenerator:
 
         elif isinstance(node, Operation):
             return self._generate_operation(node)
+        
+        elif isinstance(node, InOp):
+            element = self._generate_expression(node.element)
+            container = self._generate_expression(node.container)
+            return f"({element} in {container})"
             
         elif isinstance(node, ArrayLiteral):
             elements = ', '.join([self._generate_expression(e) for e in node.elements])
@@ -472,7 +562,7 @@ class PythonCodeGenerator:
     def _generate_operation(self, node: Operation) -> str:
         """Generate Python operation with optimization for boolean chains"""
         operator_map = {
-            '+': '+', '-': '-', '*': '*', '/': '/', '%': '%',
+            '+': '+', '-': '-', '*': '*', '/': '/', '//': '//', '%': '%',
             '**': '**', '==': '==', '!=': '!=',
             '<': '<', '>': '>', '<=': '<=', '>=': '>=',
             '&&': 'and', '||': 'or', '!': 'not',

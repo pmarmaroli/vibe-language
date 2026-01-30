@@ -1,0 +1,9 @@
+fn:count_words|i:str|o:obj|
+  words=i0.split()|
+  counts={}|
+  for:word,words|
+    if:in:word,counts|
+      counts[word]+=1|
+    else:|
+      counts[word]=1|
+  ret:counts

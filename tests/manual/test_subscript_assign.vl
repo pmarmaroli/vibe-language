@@ -1,0 +1,6 @@
+counts={}
+word='test'
+if:in:word,counts
+  counts[word]+=1
+else:
+  counts[word]=1

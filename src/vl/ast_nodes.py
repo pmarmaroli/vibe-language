@@ -69,6 +69,24 @@ class FunctionDef(Statement):
     input_types: List[Type]
     output_type: Type
     body: List[Statement]
+    decorators: List['Decorator'] = None  # Optional decorators
+
+
+@dataclass
+class ClassDef(Statement):
+    """class:name|methods"""
+    name: str
+    base_classes: List[str] = None
+    methods: List[FunctionDef] = None
+    attributes: List['VariableDef'] = None  # Forward reference
+    decorators: List['Decorator'] = None
+
+
+@dataclass
+class Decorator(ASTNode):
+    """@decorator_name or @decorator_name(args)"""
+    name: str
+    args: List['Expression'] = None
 
 
 @dataclass
@@ -101,10 +119,24 @@ class DirectCall(Statement):
 
 @dataclass
 class IfStmt(Statement):
-    """if:condition?true_expr:false_expr"""
+    """if:condition?true_expr:false_expr (ternary expression)"""
     condition: 'Expression'
     true_expr: 'Expression'
     false_expr: 'Expression'
+
+
+@dataclass
+class IfElseBlock(Statement):
+    """
+    Imperative if/else block:
+    if:condition
+      body_statements
+    else:
+      else_statements
+    """
+    condition: 'Expression'
+    if_body: List[Statement]
+    else_body: List[Statement] = None
 
 
 @dataclass
@@ -141,6 +173,12 @@ class FunctionExpr(Expression):
 @dataclass
 class PythonExpr(Expression):
     """py:code - Direct Python code passthrough"""
+    code: str
+
+
+@dataclass
+class PythonStmt(Statement):
+    """Python statement passthrough - for with, try/except, etc."""
     code: str
 
 
@@ -206,6 +244,13 @@ class Operation(Expression):
     """op:operator(arg1,arg2,...)"""
     operator: str  # +, -, *, /, ==, !=, etc.
     operands: List[Expression]
+
+
+@dataclass
+class InOp(Expression):
+    """Membership test: element in container"""
+    element: Expression
+    container: Expression
 
 
 @dataclass

@@ -1,0 +1,3 @@
+counts={}
+word='a'
+counts[word]=1

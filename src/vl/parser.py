@@ -242,9 +242,17 @@ class Parser:
         if not self.current_token:
             return None
         
-        # Direct function call with @ syntax
+        # If we hit ELSE, it belongs to parent if block, not a statement
+        if self.match(TokenType.ELSE):
+            return None
+        
+        # Decorator (can precede function or class)
         if self.match(TokenType.AT):
-            return self.parse_direct_call()
+            return self.parse_decorated_statement()
+        
+        # Class definition
+        if self.match(TokenType.CLASS):
+            return self.parse_class_def()
         
         # Function definition
         if self.match(TokenType.FN):
@@ -256,19 +264,68 @@ class Parser:
         
         # Implicit variable definition: name=value (no v: prefix)
         # Also handles compound assignment: name+=value, name-=value, etc.
+        # Also handles subscript assignment: arr[i]=value, self.prop=value
         # Also handles implicit function calls: func(args)
-        elif self.match(TokenType.IDENTIFIER):
+        elif self.match(TokenType.IDENTIFIER, TokenType.SELF):
             next_tok = self.peek(1)
+            # Simple assignment or compound assignment on variable
             if next_tok and next_tok.type in (TokenType.EQUALS, TokenType.PLUS_EQUALS, 
                                                TokenType.MINUS_EQUALS, TokenType.TIMES_EQUALS,
                                                TokenType.DIV_EQUALS):
                 return self.parse_implicit_variable_or_compound()
-            # Implicit function call: func(args) or obj.method(args)
-            elif next_tok and next_tok.type in (TokenType.LPAREN, TokenType.DOT):
+            # Subscript or member access assignment: arr[idx]=value or obj.prop=value or self.prop=value
+            elif next_tok and next_tok.type in (TokenType.LBRACKET, TokenType.DOT):
+                # Need to parse full expression to see if it's assignment
+                saved_pos = self.pos
+                saved_token = self.current_token
+                # Parse the full left-hand side expression
+                expr = self.parse_expression()
+                # Check if this is an assignment
+                if self.match(TokenType.EQUALS, TokenType.PLUS_EQUALS, 
+                              TokenType.MINUS_EQUALS, TokenType.TIMES_EQUALS, TokenType.DIV_EQUALS):
+                    op_token = self.advance()  # consume assignment operator
+                    value = self.parse_expression()
+                    # Create appropriate statement
+                    from .ast_nodes import VariableDef, CompoundAssignment
+                    if op_token.type == TokenType.EQUALS:
+                        return VariableDef(
+                            line=expr.line, column=expr.column,
+                            name=f"{self._expr_to_string(expr)}",
+                            type_annotation=None,
+                            value=value
+                        )
+                    else:
+                        # Compound assignment
+                        op_map = {
+                            TokenType.PLUS_EQUALS: '+',
+                            TokenType.MINUS_EQUALS: '-',
+                            TokenType.TIMES_EQUALS: '*',
+                            TokenType.DIV_EQUALS: '/'
+                        }
+                        return CompoundAssignment(
+                            line=expr.line, column=expr.column,
+                            name=f"{self._expr_to_string(expr)}",
+                            operator=op_map[op_token.type],
+                            value=value
+                        )
+                else:
+                    # Not assignment - this is an expression statement (e.g., method call)
+                    # Keep the parsed expression and treat as DirectCall
+                    from .ast_nodes import DirectCall
+                    return DirectCall(
+                        line=expr.line, column=expr.column,
+                        function=expr
+                    )
+            # Implicit function call: func(args) - but only if followed by (
+            elif next_tok and next_tok.type == TokenType.LPAREN:
                 return self.parse_implicit_call()
+            # If we get here, it's an IDENTIFIER we don't know how to handle
+            # This shouldn't happen in valid VL code
+            else:
+                raise self.error(f"Unexpected identifier pattern - identifier not followed by assignment, subscript, member access, or call")
         
         # Return statement
-        if self.match(TokenType.RET):
+        elif self.match(TokenType.RET):
             return self.parse_return_stmt()
         
         # If statement (conditional)
@@ -299,8 +356,117 @@ class Parser:
         elif self.match(TokenType.FILE):
             return self.parse_file_operation()
         
+        # Python passthrough statement (py:...)
+        elif self.match(TokenType.PY):
+            return self.parse_python_stmt()
+        
         else:
             raise self.error(f"Unexpected token: {self.current_token.type.name}")
+    
+    def parse_decorated_statement(self) -> Statement:
+        """Parse @decorator syntax (for functions or classes)"""
+        decorators = []
+        
+        # Collect all decorators
+        while self.current_token and self.current_token.type == TokenType.AT:
+            decorator_line = self.current_token.line
+            decorator_col = self.current_token.column
+            self.advance()  # consume @
+            
+            # Parse decorator name with possible member access: @app.route or @decorator
+            decorator_parts = [self.expect(TokenType.IDENTIFIER).value]
+            while self.match(TokenType.DOT):
+                self.advance()  # consume .
+                decorator_parts.append(self.expect(TokenType.IDENTIFIER).value)
+            
+            decorator_name = '.'.join(decorator_parts)
+            
+            # Check for decorator arguments: @decorator(args)
+            args = None
+            if self.current_token and self.current_token.type == TokenType.LPAREN:
+                self.advance()  # consume (
+                args = []
+                while self.current_token and self.current_token.type != TokenType.RPAREN:
+                    args.append(self.parse_expression())
+                    if self.current_token and self.current_token.type == TokenType.COMMA:
+                        self.advance()
+                self.expect(TokenType.RPAREN)
+            
+            decorators.append(Decorator(
+                line=decorator_line,
+                column=decorator_col,
+                name=decorator_name,
+                args=args
+            ))
+            
+            # Skip newlines between decorators
+            while self.current_token and self.current_token.type == TokenType.NEWLINE:
+                self.advance()
+        
+        # Now parse the decorated thing (function or class)
+        if self.match(TokenType.FN):
+            func_def = self.parse_function_def()
+            func_def.decorators = decorators
+            return func_def
+        elif self.match(TokenType.CLASS):
+            class_def = self.parse_class_def()
+            class_def.decorators = decorators
+            return class_def
+        else:
+            self.error(f"Expected function or class after decorator, got {self.current_token.type if self.current_token else 'EOF'}")
+    
+    def parse_class_def(self) -> 'ClassDef':
+        """Parse: class:name|methods"""
+        token = self.expect(TokenType.CLASS)
+        self.expect(TokenType.COLON)
+        
+        name = self.expect(TokenType.IDENTIFIER).value
+        
+        # Optional base classes: class:name[BaseClass]
+        base_classes = []
+        if self.current_token and self.current_token.type == TokenType.LBRACKET:
+            self.advance()  # consume [
+            while self.current_token and self.current_token.type != TokenType.RBRACKET:
+                base_classes.append(self.expect(TokenType.IDENTIFIER).value)
+                if self.current_token and self.current_token.type == TokenType.COMMA:
+                    self.advance()
+            self.expect(TokenType.RBRACKET)
+        
+        # Expect newline before body
+        self.expect(TokenType.NEWLINE)
+        
+        # Parse class body (indented methods and attributes)
+        methods = []
+        attributes = []
+        
+        while self.current_token and self.current_token.column > 1:
+            # Skip decorators for now, parse function definitions as methods
+            if self.match(TokenType.AT):
+                method = self.parse_decorated_statement()
+                if isinstance(method, FunctionDef):
+                    methods.append(method)
+            elif self.match(TokenType.FN):
+                methods.append(self.parse_function_def())
+            elif self.match(TokenType.VAR):
+                attributes.append(self.parse_variable_def())
+            elif self.match(TokenType.IDENTIFIER):
+                # Could be implicit variable: self.x = value
+                attributes.append(self.parse_implicit_variable_or_compound())
+            else:
+                break
+            
+            # Skip newlines
+            while self.current_token and self.current_token.type == TokenType.NEWLINE:
+                self.advance()
+        
+        return ClassDef(
+            line=token.line, column=token.column,
+            name=name,
+            base_classes=base_classes if base_classes else None,
+            methods=methods if methods else None,
+            attributes=attributes if attributes else None,
+            decorators=None  # Set by parse_decorated_statement if present
+        )
     
     def parse_function_def(self) -> FunctionDef:
         """Parse: fn:name|i:type,type|o:type|body"""
@@ -370,12 +536,30 @@ class Parser:
         return name, input_types, output_type, body, token
     
     def _parse_function_body(self, stop_tokens: List[TokenType]) -> List[Statement]:
-        """Parse function body until a stop token is encountered"""
+        """
+        Parse function body until a stop token is encountered or we hit a module-level statement.
+        
+        Module-level statements are identified by being at column 1 after a newline.
+        This handles both single-line functions:
+            fn:name|...|ret:value
+            module_statement
+        And multi-line functions:
+            fn:name|...|
+              body_statement
+              body_statement
+            module_statement
+        """
         body = []
         
         while self.current_token and self.current_token.type not in stop_tokens:
             if self.match(TokenType.NEWLINE):
                 self.skip_newlines()
+                
+                # After newlines, if next token is at column 1 (module level), stop parsing function body
+                # This prevents module-level statements from being parsed as function body
+                if self.current_token and self.current_token.column == 1:
+                    break
+                
                 continue
             
             stmt = self.parse_statement()
@@ -517,41 +701,150 @@ class Parser:
             function=function_expr
         )
     
-    def parse_if_stmt(self) -> IfStmt:
-        """Parse: if:condition?true_expr:false_expr
-        Supports early returns: if:condition?ret:value:ret:other"""
+    def parse_if_stmt(self):
+        """
+        Parse if statement - supports two forms:
+        1. Ternary: if:condition?true_expr:false_expr
+        2. Block: if:condition\n  body_statements\n[else:\n  else_statements]
+        """
         token = self.expect(TokenType.IF)
         self.expect(TokenType.COLON)
         
         condition = self.parse_expression()
-        self.expect(TokenType.QUESTION)
         
-        # Parse true branch - could be ret:value or just value
-        if self.match(TokenType.RET):
+        # Check if this is ternary (?) or block (newline/pipe)
+        if self.match(TokenType.QUESTION):
+            # Ternary form: if:condition?true_expr:false_expr
             self.advance()
+            
+            # Parse true branch - could be ret:value or just value
+            if self.match(TokenType.RET):
+                self.advance()
+                self.expect(TokenType.COLON)
+                true_value = self.parse_expression()
+                true_expr = ReturnStmt(line=token.line, column=token.column, value=true_value)
+            else:
+                true_expr = self.parse_expression()
+            
             self.expect(TokenType.COLON)
-            true_value = self.parse_expression()
-            true_expr = ReturnStmt(line=token.line, column=token.column, value=true_value)
+            
+            # Parse false branch - could be ret:value or just value
+            if self.match(TokenType.RET):
+                self.advance()
+                self.expect(TokenType.COLON)
+                false_value = self.parse_expression()
+                false_expr = ReturnStmt(line=token.line, column=token.column, value=false_value)
+            else:
+                false_expr = self.parse_expression()
+            
+            return IfStmt(
+                line=token.line, column=token.column,
+                condition=condition,
+                true_expr=true_expr,
+                false_expr=false_expr
+            )
         else:
-            true_expr = self.parse_expression()
-        
-        self.expect(TokenType.COLON)
-        
-        # Parse false branch - could be ret:value or just value
-        if self.match(TokenType.RET):
-            self.advance()
-            self.expect(TokenType.COLON)
-            false_value = self.parse_expression()
-            false_expr = ReturnStmt(line=token.line, column=token.column, value=false_value)
-        else:
-            false_expr = self.parse_expression()
-        
-        return IfStmt(
-            line=token.line, column=token.column,
-            condition=condition,
-            true_expr=true_expr,
-            false_expr=false_expr
-        )
+            # Block form: if:condition followed by indented body
+            # Expect newline or pipe
+            if self.match(TokenType.PIPE):
+                self.advance()
+            self.skip_newlines()
+            
+            # Parse if body (indented statements)
+            # Track the expected indentation level - should be greater than if statement's column
+            if_column = token.column
+            expected_body_column = None
+            if_body = []
+            
+            while self.current_token and self.current_token.type != TokenType.EOF and self.current_token.column > if_column:
+                # Set expected column from first statement
+                if expected_body_column is None and self.current_token.column > if_column:
+                    expected_body_column = self.current_token.column
+                
+                # If indentation decreased but still > if_column, we've left this block
+                if expected_body_column and self.current_token.column < expected_body_column:
+                    break
+                
+                stmt = self.parse_statement()
+                if stmt:
+                    if_body.append(stmt)
+                
+                # Consume pipes
+                if self.match(TokenType.PIPE):
+                    self.advance()
+                    # After pipe, skip any newlines
+                    while self.match(TokenType.NEWLINE):
+                        self.advance()
+                    # Check if we've exited the block
+                    if not self.current_token or self.current_token.column <= if_column:
+                        break
+                    continue
+                    
+                # Skip newlines but stop if we're back at or before if column
+                if self.match(TokenType.NEWLINE):
+                    self.advance()
+                    self.skip_newlines()
+                    if not self.current_token or self.current_token.column <= if_column:
+                        break
+                    continue
+                
+                # If no statement and no special token, we might be stuck - break
+                if not stmt and self.current_token:
+                    break
+            
+            # Check for else clause
+            else_body = []
+            if self.match(TokenType.ELSE):
+                else_token_column = self.current_token.column if self.current_token else if_column
+                self.advance()
+                self.expect(TokenType.COLON)
+                if self.match(TokenType.PIPE):
+                    self.advance()
+                self.skip_newlines()
+                
+                # Parse else body with same indentation tracking
+                expected_else_column = None
+                while self.current_token and self.current_token.type != TokenType.EOF and self.current_token.column > else_token_column:
+                    # Set expected column from first statement
+                    if expected_else_column is None and self.current_token.column > else_token_column:
+                        expected_else_column = self.current_token.column
+                    
+                    # If indentation decreased but still > else_column, we've left this block
+                    if expected_else_column and self.current_token.column < expected_else_column:
+                        break
+                    
+                    stmt = self.parse_statement()
+                    if stmt:
+                        else_body.append(stmt)
+                        
+                    if self.match(TokenType.PIPE):
+                        self.advance()
+                        # After pipe, skip any newlines
+                        while self.match(TokenType.NEWLINE):
+                            self.advance()
+                        # Check if we've exited the block
+                        if not self.current_token or self.current_token.column <= else_token_column:
+                            break
+                        continue
+                        
+                    if self.match(TokenType.NEWLINE):
+                        self.advance()
+                        self.skip_newlines()
+                        if not self.current_token or self.current_token.column <= else_token_column:
+                            break
+                        continue
+                    
+                    # Prevent infinite loop
+                    if not stmt and self.current_token:
+                        break
+            
+            from .ast_nodes import IfElseBlock
+            return IfElseBlock(
+                line=token.line, column=token.column,
+                condition=condition,
+                if_body=if_body,
+                else_body=else_body if else_body else None
+            )
     
     def parse_if_expr(self) -> IfStmt:
         """Parse if as expression: if:condition?true_expr:false_expr
@@ -944,7 +1237,7 @@ class Parser:
         """Parse multiplication/division"""
         left = self.parse_unary()
         
-        while self.match(TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO):
+        while self.match(TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.FLOOR_DIVIDE, TokenType.MODULO):
             op_token = self.advance()
             right = self.parse_unary()
             left = Operation(
@@ -1131,6 +1424,20 @@ class Parser:
         if self.match(TokenType.IF):
             return self.parse_if_expr()
         
+        # In operator (in:element,container)
+        if self.match(TokenType.IN):
+            token_start = self.advance()
+            self.expect(TokenType.COLON)
+            element = self.parse_expression()
+            self.expect(TokenType.COMMA)
+            container = self.parse_expression()
+            from .ast_nodes import InOp
+            return InOp(
+                line=token_start.line, column=token_start.column,
+                element=element,
+                container=container
+            )
+        
         # Data pipeline expression (data:source|filter:...)
         if self.match(TokenType.DATA):
             return self.parse_data_pipeline()
@@ -1138,6 +1445,14 @@ class Parser:
         # API call as expression (api:GET,url)
         if self.match(TokenType.API, TokenType.ASYNC):
             return self.parse_api_call()
+        
+        # 'self' keyword used as identifier (in method context)
+        if self.match(TokenType.SELF):
+            name = self.advance().value
+            return Identifier(
+                line=token.line, column=token.column,
+                name='self'
+            )
         
         # Identifier (variable or function name)
         if self.match(TokenType.IDENTIFIER):
@@ -1264,6 +1579,63 @@ class Parser:
             code=code
         )
     
+    def parse_python_stmt(self) -> 'PythonStmt':
+        """
+        Parse: py:code for statement-level Python passthrough
+        
+        Used for with statements, try/except, and other Python constructs
+        not natively supported in VL.
+        
+        Example: py:with open('file.txt') as f:@@@  contents = f.read()
+        """
+        from .ast_nodes import PythonStmt
+        
+        token = self.current_token
+        self.expect(TokenType.PY)
+        self.expect(TokenType.COLON)
+        
+        # Collect Python code until we hit a terminator (pipe or EOF)
+        # The code may contain @@@ as line separators (three AT tokens)
+        code_parts = []
+        
+        while self.current_token and self.current_token.type not in (TokenType.EOF, TokenType.PIPE):
+            # Get the raw source text for this token
+            tok_type = self.current_token.type
+            tok_value = self.current_token.value
+            
+            # Handle special cases
+            if tok_type == TokenType.STRING:
+                code_parts.append(f"'{tok_value}'")
+            elif tok_type == TokenType.COMMA:
+                code_parts.append(', ')
+            elif tok_type == TokenType.DOT:
+                code_parts.append('.')
+            elif tok_type == TokenType.COLON:
+                code_parts.append(':')
+            elif tok_type == TokenType.AT:
+                # Check if this is part of @@@ (line separator)
+                # Collect consecutive @ tokens
+                at_count = 0
+                while self.current_token and self.current_token.type == TokenType.AT:
+                    at_count += 1
+                    self.advance()
+                # Add the AT tokens back - they represent @@@
+                code_parts.append('@' * at_count)
+                continue  # Don't advance again since we already did
+            else:
+                # For everything else, use the token value directly
+                code_parts.append(str(tok_value))
+            
+            self.advance()
+        
+        code = ''.join(code_parts)
+        
+        return PythonStmt(
+            line=token.line,
+            column=token.column,
+            code=code
+        )
+    
     def parse_operation_expr(self) -> Operation:
         """Parse: op:operator(arg1,arg2,...)"""
         token = self.expect(TokenType.OP)
@@ -1288,9 +1660,52 @@ class Parser:
         )
     
     def parse_array_literal(self) -> ArrayLiteral:
-        """Parse: [1,2,3]"""
+        """Parse: [1,2,3] or Python list comprehension [x for x in ...]"""
         token = self.expect(TokenType.LBRACKET)
         
+        # Check if this might be a list comprehension (contains FOR keyword)
+        # Scan ahead to see if there's a FOR before RBRACKET
+        saved_pos = self.pos
+        is_comprehension = False
+        depth = 1
+        while self.pos < len(self.tokens) and depth > 0:
+            tok = self.tokens[self.pos]
+            if tok.type == TokenType.LBRACKET:
+                depth += 1
+            elif tok.type == TokenType.RBRACKET:
+                depth -= 1
+            elif tok.type == TokenType.FOR and depth == 1:
+                is_comprehension = True
+                break
+            self.pos += 1
+        self.pos = saved_pos
+        self.current_token = self.tokens[self.pos] if self.pos < len(self.tokens) else None
+        
+        # If it's a comprehension, collect everything until ] as Python code
+        if is_comprehension:
+            # Collect all tokens until matching ]
+            py_tokens = []
+            depth = 1
+            while self.current_token and depth > 0:
+                if self.current_token.type == TokenType.LBRACKET:
+                    depth += 1
+                elif self.current_token.type == TokenType.RBRACKET:
+                    depth -= 1
+                    if depth == 0:
+                        break
+                py_tokens.append(self.current_token.value)
+                self.advance()
+            self.expect(TokenType.RBRACKET)
+            
+            # Create a Python passthrough expression
+            py_code = '[' + ' '.join(py_tokens) + ']'
+            from .ast_nodes import PythonExpr
+            return PythonExpr(
+                line=token.line, column=token.column,
+                code=py_code
+            )
+        
+        # Regular array literal
         elements = []
         while not self.match(TokenType.RBRACKET):
             elements.append(self.parse_expression())
@@ -1329,6 +1744,22 @@ class Parser:
             line=token.line, column=token.column,
             pairs=pairs
         )
+    
+    def _expr_to_string(self, expr: Expression) -> str:
+        """Convert an expression AST to string representation (for subscript assignments)"""
+        from .ast_nodes import Identifier, IndexAccess, MemberAccess
+        if isinstance(expr, Identifier):
+            return expr.name
+        elif isinstance(expr, IndexAccess):
+            obj_str = self._expr_to_string(expr.object)
+            index_str = self._expr_to_string(expr.index)
+            return f"{obj_str}[{index_str}]"
+        elif isinstance(expr, MemberAccess):
+            obj_str = self._expr_to_string(expr.object)
+            return f"{obj_str}.{expr.property}"
+        else:
+            # Fallback: return placeholder
+            return str(expr)
 
 
 def parse(source: str) -> Program:

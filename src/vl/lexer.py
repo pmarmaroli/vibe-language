@@ -25,8 +25,13 @@ class TokenType(Enum):
     VAR = auto()        # v:
     OP = auto()
     IF = auto()
+    ELSE = auto()       # else:
     FOR = auto()
     WHILE = auto()
+    CLASS = auto()      # class:
+    SELF = auto()       # self
+    DECORATOR = auto()  # @decorator
+    IN = auto()         # in operator for membership testing
     API = auto()
     ASYNC = auto()
     FILTER = auto()
@@ -64,6 +69,7 @@ class TokenType(Enum):
     MINUS = auto()
     MULTIPLY = auto()
     DIVIDE = auto()
+    FLOOR_DIVIDE = auto()  # //
     MODULO = auto()
     POWER = auto()
     EQUAL = auto()
@@ -135,8 +141,12 @@ class Lexer:
         'v': TokenType.VAR,
         'op': TokenType.OP,
         'if': TokenType.IF,
+        'else': TokenType.ELSE,
         'for': TokenType.FOR,
         'while': TokenType.WHILE,
+        'in': TokenType.IN,
+        'class': TokenType.CLASS,
+        'self': TokenType.SELF,
         'api': TokenType.API,
         'async': TokenType.ASYNC,
         'filter': TokenType.FILTER,
@@ -178,6 +188,7 @@ class Lexer:
         '-': TokenType.MINUS,
         '*': TokenType.MULTIPLY,
         '/': TokenType.DIVIDE,
+        '//': TokenType.FLOOR_DIVIDE,
         '%': TokenType.MODULO,
         '**': TokenType.POWER,
         '==': TokenType.EQUAL,

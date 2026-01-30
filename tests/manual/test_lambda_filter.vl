@@ -1,0 +1,6 @@
+fn:filter_evens|i:arr|o:arr|
+  evens=[]|
+  for:n,i0|
+    if:n%2==0|
+      evens.append(n)|
+  ret:evens

@@ -1,0 +1,9 @@
+deps:[flask]
+
+app=Flask(__name__)
+@app.route('/')
+fn:hello|i:|o:any|ret:'Hello, World!'
+
+
+if:__name__=='__main__'
+  app.run()
