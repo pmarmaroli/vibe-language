@@ -570,6 +570,9 @@ class PythonCodeGenerator:
         
         op = operator_map.get(node.operator, node.operator)
         
+        # Check if this is a known binary/unary operator
+        is_known_operator = node.operator in operator_map
+        
         # OPTIMIZATION: Convert chained && to all() and || to any()
         # This is more Pythonic and saves tokens in generated code
         # Controlled by vl_config.BOOLEAN_CHAIN_MIN_LENGTH
@@ -590,7 +593,8 @@ class PythonCodeGenerator:
         if len(node.operands) == 1:
             operand = self._generate_expression(node.operands[0])
             return f"{op} {operand}"
-        elif len(node.operands) == 2:
+        elif len(node.operands) == 2 and is_known_operator:
+            # Binary operator syntax (only for known operators)
             left = self._generate_expression(node.operands[0])
             right = self._generate_expression(node.operands[1])
             # Only wrap in parens if operands are also operations (for clarity)
@@ -604,6 +608,7 @@ class PythonCodeGenerator:
                 return f"({left} {op} {right})"
             return f"{left} {op} {right}"
         else:
+            # Function call syntax (for unknown operators or != 2 operands)
             operands = ', '.join([self._generate_expression(o) for o in node.operands])
             return f"{op}({operands})"
     

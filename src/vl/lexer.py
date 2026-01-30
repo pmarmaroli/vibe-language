@@ -349,7 +349,8 @@ class Lexer:
         identifier = ''
         
         # First character is letter or underscore
-        while self.current_char() and (self.current_char().isalnum() or self.current_char() in ('_', '-')):
+        while self.current_char() and (self.current_char().isalnum() or self.current_char() == '_' or 
+                                       (self.current_char() == '-' and self.peek_char() != '=')):
             identifier += self.current_char()
             self.advance()
         
