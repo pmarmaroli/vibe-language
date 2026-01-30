@@ -61,7 +61,9 @@ vibe-language/
 │   ├── basic/           # Hello world, functions
 │   ├── data/            # Data pipelines, APIs
 │   └── ui/              # UI components
-└── docs/                # Documentation
+├── docs/                # Documentation
+│   └── specification.md # Language specification
+└── .github/             # CI/CD pipeline
 ```
 
 ### VS Code Extension
@@ -805,6 +807,117 @@ This translates to:
 
 -----
 
+## Architecture
+
+### Compilation Pipeline
+
+```
+VL Source Code (.vl file)
+    ↓
+[Lexer] → Tokens
+    ↓
+[Parser] → Abstract Syntax Tree (AST)
+    ↓
+[Type Checker] → Type Validation (optional)
+    ↓
+[Code Generator] → Target Language Code
+    ↓
+Output (Python/JS/TS/C/Rust)
+```
+
+### Core Components
+
+**1. Lexer** - Converts raw VL source into tokens, handles string interpolation  
+**2. Parser** - Recursive descent parser with operator precedence, builds AST  
+**3. Type Checker** - Optional type validation and inference  
+**4. Code Generators** - All inherit from `BaseCodeGenerator`:
+- **Python**: Optimized with `all()`/`any()` for boolean chains
+- **JavaScript**: ES6+ with native operators
+- **TypeScript**: Type-safe with full type annotations
+- **C**: ANSI C with standard library
+- **Rust**: Safe Rust with std library
+
+**5. Configuration** - Centralized settings control optimization behavior
+
+### Running Tests
+
+```bash
+# Set PYTHONPATH to find the vl package
+cd vibe-language
+export PYTHONPATH="$PWD/src"  # Unix
+$env:PYTHONPATH="$PWD\src"    # Windows
+
+# Run all codegen tests (65 tests)
+python tests/codegen/test_codegen_all.py
+
+# Run integration tests
+python tests/integration/test_execution.py
+
+# Run benchmarks
+python tests/benchmarks/run_benchmarks.py
+```
+
+-----
+
+## Roadmap
+
+### Current Status (v0.1.3)
+
+**Completed:**
+- ✅ Multi-target compiler (Python, JavaScript, TypeScript, C, Rust)
+- ✅ Professional project structure (src/vl package)
+- ✅ Configuration system with runtime control
+- ✅ CI/CD pipeline (GitHub Actions, multi-platform)
+- ✅ Comprehensive test coverage (76/76 tests, 100% pass rate)
+- ✅ BaseCodeGenerator (eliminates code duplication)
+- ✅ Type checker with inference
+- ✅ VS Code extension (syntax highlighting)
+- ✅ Python FFI with `py:` prefix
+- ✅ Data pipelines (filter, map, groupBy, agg, sort)
+
+**In Progress:**
+- 🚧 TypeScript compiler (type-safe generation)
+- 🚧 Documentation website
+- 🚧 More example programs
+
+**Next Up:**
+- 📋 Standard library functions
+- 📋 Community Discord/Slack
+- 📋 Performance benchmarks vs JavaScript/Python
+- 📋 First beta release (v0.2.0)
+
+### Development Phases
+
+**Phase 1: Foundation (Q1-Q2 2026)** ← We are here  
+Goal: Prove VL works for real development
+- ✅ Core language implementation
+- ✅ Multi-target compilation
+- ✅ Professional tooling
+- [ ] Documentation website
+
+**Phase 2: Early Adoption (Q3-Q4 2026)**  
+Goal: Production-ready for early adopters
+- TypeScript/C/Rust compiler completion
+- FFI for Node.js packages
+- VS Code extension (full features)
+- Package manager (basic)
+
+**Phase 3: Production Ready (Q1-Q2 2027)**  
+Goal: Stable, performant, widely adopted
+- Performance optimization
+- Enterprise features
+- Native mobile/embedded support
+- Standard library
+
+**Phase 4: Mainstream (Q3 2027+)**  
+Goal: Mainstream language choice
+- Advanced features (concurrency, metaprogramming)
+- Self-hosting (VL compiler written in VL)
+- Domain expansions (ML, graphics, databases)
+- Education partnerships
+
+-----
+
 ## Use Cases
 
 1. **AI-First Development**
@@ -832,26 +945,38 @@ This translates to:
 
 ## Project Status
 
-**Current Version:** 0.1.0-alpha  
-**Status:** Active Development - Phase 1  
+**Current Version:** 0.1.3-alpha  
+**Status:** Active Development - Phase 1 Complete  
 **License:** MIT  
 **Started:** January 2026  
 **Creator:** Patrick Marmaroli
 
 ### Contributing
 
-VL is currently in early development. We welcome:
-
+VL is in active development. We welcome:
 - Feedback on language design
-- Use case suggestions
-- Technical contributions
+- Bug reports and feature requests
+- Code contributions (see project structure in Quick Start)
 - Documentation improvements
+- Example programs
 
-### Getting Involved
+### Development Workflow
 
-- **Discussions**: Design decisions and feature proposals
-- **Issues**: Bug reports and enhancement requests
-- **Pull Requests**: Code contributions (when repository is ready)
+1. **Set up**: `export PYTHONPATH="$PWD/src"` (Unix) or `$env:PYTHONPATH="$PWD\src"` (Windows)
+2. **Make changes** to files in `src/vl/`
+3. **Run tests**: `python tests/codegen/test_codegen_all.py`
+4. **Test CLI**: `./vl.bat examples/basic/hello.vl`
+5. **Submit PR** with tests and documentation
+
+### Adding a New Target Language
+
+To add support for a new target (e.g., Go):
+
+1. Create `src/vl/codegen/go.py` inheriting from `BaseCodeGenerator`
+2. Update `src/vl/compiler.py` to add Go to `TargetLanguage` enum
+3. Update `src/vl/config.py` with Go-specific settings
+4. Add Go to `src/vl/codegen/__init__.py` exports
+5. Write tests in `tests/codegen/test_codegen_all.py`
 
 -----
 
