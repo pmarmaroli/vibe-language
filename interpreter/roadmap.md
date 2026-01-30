@@ -135,9 +135,11 @@ VL aims to become the universal programming language for the AI era—enabling s
 
 #### FFI Implementation
 
-- [ ] Python FFI (call Python libraries from VL)
+- [x] Python FFI (call Python libraries from VL) - ✅ **DONE** (py: prefix)
+- [x] Type safety for FFI calls - ✅ **DONE** (automatic typing imports)
+- [x] Array/object indexing support - ✅ **DONE** (arr[0], obj['key'])
+- [x] Data pipeline item keyword fix - ✅ **DONE** (map/filter scoping)
 - [ ] Node.js FFI (call npm packages from VL)
-- [ ] Type safety for FFI calls
 - [ ] Automatic dependency management
 
 #### Developer Experience

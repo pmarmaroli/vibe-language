@@ -139,6 +139,19 @@ class FunctionExpr(Expression):
 
 
 @dataclass
+class PythonExpr(Expression):
+    """py:code - Direct Python code passthrough"""
+    code: str
+
+
+@dataclass
+class IndexAccess(Expression):
+    """Array/object indexing: arr[index] or obj['key']"""
+    object: Expression
+    index: Expression
+
+
+@dataclass
 class NumberLiteral(Expression):
     """Numeric literal: 42, 3.14, 1.5e10"""
     value: Union[int, float]

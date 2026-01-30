@@ -15,7 +15,7 @@ pip install tiktoken
 Run the benchmark script from the root of the repository:
 
 ```bash
-python benchmarks/benchmark_suite.py
+python run_benchmarks.py
 ```
 
 ## Methodology

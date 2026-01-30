@@ -43,6 +43,7 @@ class TokenType(Enum):
     SORT = auto()
     FILE = auto()
     FFI = auto()
+    PY = auto()          # py: for Python passthrough
     
     # Types
     TYPE_INT = auto()
@@ -152,6 +153,7 @@ class Lexer:
         'sort': TokenType.SORT,
         'file': TokenType.FILE,
         'ffi': TokenType.FFI,
+        'py': TokenType.PY,
     }
     
     # Types mapping

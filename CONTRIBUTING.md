@@ -81,7 +81,7 @@ pip install tiktoken
 # Run test suites
 python test_examples.py      # Test all example programs
 python test_robustness.py    # Test complex scenarios (100% pass rate)
-python benchmarks/benchmark_suite.py  # Token efficiency benchmarks
+python run_benchmarks.py  # Comprehensive benchmarks
 ```
 
 ## 📝 Contribution Process

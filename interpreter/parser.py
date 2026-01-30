@@ -571,13 +571,30 @@ class Parser:
         iterable = self.parse_expression()
         self.expect(TokenType.PIPE)
         
+        # Parse loop body - continue until we hit a token that ends the loop
+        # This could be EOF, a newline followed by non-indented code, or certain keywords
         body = []
-        while not self.match(TokenType.NEWLINE, TokenType.EOF, TokenType.PIPE):
+        while self.current_token and self.current_token.type not in (TokenType.EOF,):
+            # Check if we've hit a statement that shouldn't be in this loop
+            # (like a return, another top-level statement, etc.)
+            if self.match(TokenType.RET, TokenType.FN, TokenType.META, TokenType.DEPS, TokenType.EXPORT):
+                break
+            
+            if self.match(TokenType.NEWLINE):
+                self.skip_newlines()
+                continue
+            
             stmt = self.parse_statement()
             if stmt:
                 body.append(stmt)
-            if self.match(TokenType.PIPE):
-                break
+            
+            # Consume pipe separators (but not pipeline operations)
+            if self.match(TokenType.PIPE) and not self._is_pipeline_lookahead():
+                self.advance()
+            else:
+                # If we hit a pipe that's not a separator, we're done
+                if self.match(TokenType.PIPE):
+                    break
         
         return ForLoop(
             line=token.line, column=token.column,
@@ -594,13 +611,28 @@ class Parser:
         condition = self.parse_expression()
         self.expect(TokenType.PIPE)
         
+        # Parse loop body - same logic as for loop
         body = []
-        while not self.match(TokenType.NEWLINE, TokenType.EOF, TokenType.PIPE):
+        while self.current_token and self.current_token.type not in (TokenType.EOF,):
+            # Check if we've hit a statement that shouldn't be in this loop
+            if self.match(TokenType.RET, TokenType.FN, TokenType.META, TokenType.DEPS, TokenType.EXPORT):
+                break
+            
+            if self.match(TokenType.NEWLINE):
+                self.skip_newlines()
+                continue
+            
             stmt = self.parse_statement()
             if stmt:
                 body.append(stmt)
-            if self.match(TokenType.PIPE):
-                break
+            
+            # Consume pipe separators (but not pipeline operations)
+            if self.match(TokenType.PIPE) and not self._is_pipeline_lookahead():
+                self.advance()
+            else:
+                # If we hit a pipe that's not a separator, we're done
+                if self.match(TokenType.PIPE):
+                    break
         
         return WhileLoop(
             line=token.line, column=token.column,
@@ -944,6 +976,18 @@ class Parser:
                     property=prop_token.value
                 )
             
+            # Array/object indexing: obj[index]
+            elif self.match(TokenType.LBRACKET):
+                self.advance()
+                index = self.parse_expression()
+                self.expect(TokenType.RBRACKET)
+                expr = IndexAccess(
+                    line=expr.line,
+                    column=expr.column,
+                    object=expr,
+                    index=index
+                )
+            
             # Function call: func(args)
             elif self.match(TokenType.LPAREN):
                 expr = self._parse_call_args(expr)
@@ -1067,6 +1111,10 @@ class Parser:
                 arguments=args
             )
         
+        # Python passthrough (py:code)
+        if self.match(TokenType.PY):
+            return self.parse_python_expr()
+        
         # Operation (op:+(...))
         if self.match(TokenType.OP):
             return self.parse_operation_expr()
@@ -1120,6 +1168,93 @@ class Parser:
             return self.parse_object_literal()
         
         raise self.error(f"Unexpected token in expression: {token.type.name}")
+    
+    def parse_python_expr(self) -> 'PythonExpr':
+        """
+        Parse: py:code
+        
+        Captures raw Python code until we hit a delimiter.
+        Supports:
+        - py:np.array([1,2,3])
+        - py:pd.read_csv('file.csv')
+        - py:some_func(a, b, c)
+        """
+        token = self.expect(TokenType.PY)
+        self.expect(TokenType.COLON)
+        
+        # Simplified approach: collect everything until a VL delimiter
+        # We need to handle strings and brackets to avoid breaking on delimiters inside them
+        code_parts = []
+        paren_depth = 0
+        bracket_depth = 0
+        brace_depth = 0
+        in_string = False
+        string_char = None
+        
+        while self.current_token and self.current_token.type != TokenType.EOF:
+            tok_type = self.current_token.type
+            tok_value = self.current_token.value
+            
+            # Handle string literals
+            if tok_type == TokenType.STRING:
+                code_parts.append(f"'{tok_value}'")
+                self.advance()
+                continue
+            
+            # Track parentheses depth
+            if tok_type == TokenType.LPAREN:
+                paren_depth += 1
+                code_parts.append('(')
+                self.advance()
+            elif tok_type == TokenType.RPAREN:
+                if paren_depth > 0:
+                    paren_depth -= 1
+                    code_parts.append(')')
+                    self.advance()
+                else:
+                    break  # End of expression
+            elif tok_type == TokenType.LBRACKET:
+                bracket_depth += 1
+                code_parts.append('[')
+                self.advance()
+            elif tok_type == TokenType.RBRACKET:
+                if bracket_depth > 0:
+                    bracket_depth -= 1
+                    code_parts.append(']')
+                    self.advance()
+                else:
+                    break
+            elif tok_type == TokenType.LBRACE:
+                brace_depth += 1
+                code_parts.append('{')
+                self.advance()
+            elif tok_type == TokenType.RBRACE:
+                if brace_depth > 0:
+                    brace_depth -= 1
+                    code_parts.append('}')
+                    self.advance()
+                else:
+                    break
+            # Stop at VL delimiters when not inside brackets
+            elif paren_depth == 0 and bracket_depth == 0 and brace_depth == 0:
+                if tok_type in (TokenType.PIPE, TokenType.COMMA, TokenType.NEWLINE):
+                    break
+                else:
+                    # Add token value and advance
+                    code_parts.append(tok_value)
+                    self.advance()
+            else:
+                # Inside brackets - keep collecting
+                code_parts.append(tok_value)
+                self.advance()
+        
+        code = ''.join(code_parts)
+        
+        return PythonExpr(
+            line=token.line,
+            column=token.column,
+            code=code
+        )
     
     def parse_operation_expr(self) -> Operation:
         """Parse: op:operator(arg1,arg2,...)"""

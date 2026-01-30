@@ -31,6 +31,42 @@ class PythonCodeGenerator:
         """Get current indentation"""
         return '    ' * self.indent_level
     
+    def _convert_type_annotation(self, vl_type: str) -> str:
+        """Convert VL type to Python type annotation"""
+        type_map = {
+            'arr': 'List[Any]',
+            'obj': 'Dict[str, Any]',
+            'str': 'str',
+            'int': 'int',
+            'bool': 'bool',
+            'float': 'float',
+            'any': 'Any'
+        }
+        return type_map.get(vl_type, vl_type)
+    
+    def _needs_typing_imports(self, node: Program) -> bool:
+        """Check if program uses types that require typing module"""
+        for stmt in node.statements:
+            if isinstance(stmt, FunctionDef):
+                # Check input and output types
+                for input_type in stmt.input_types:
+                    if input_type.name in ('arr', 'obj', 'any'):
+                        return True
+                if stmt.output_type and stmt.output_type.name in ('arr', 'obj', 'any'):
+                    return True
+            elif isinstance(stmt, VariableDef):
+                if stmt.type_annotation and stmt.type_annotation.name in ('arr', 'obj', 'any'):
+                    return True
+        return False
+    
+    def _replace_item_keyword(self, expr_str: str, loop_var: str = 'x') -> str:
+        """Replace 'item' keyword in expressions with the actual loop variable"""
+        # Replace 'item' identifier with loop variable
+        # Need to be careful not to replace 'item' inside strings or as part of other identifiers
+        import re
+        # Match 'item' as a whole word (not part of another identifier)
+        return re.sub(r'\bitem\b', loop_var, expr_str)
+    
     def _emit(self, code: str):
         """Emit a line of code with proper indentation"""
         if code:
@@ -45,6 +81,12 @@ class PythonCodeGenerator:
             self._emit(f"# VL Program: {node.metadata.name}")
             self._emit(f"# Type: {node.metadata.program_type}")
             self._emit(f"# Target: {node.metadata.target_language}")
+            self._emit('')
+        
+        # Check if we need typing imports
+        needs_typing = self._needs_typing_imports(node)
+        if needs_typing:
+            self._emit("from typing import List, Dict, Any")
             self._emit('')
         
         # Dependencies (imports)
@@ -96,10 +138,12 @@ class PythonCodeGenerator:
         # Implicit parameter naming i0, i1... based on input types
         params = []
         for idx, typ in enumerate(node.input_types):
-             params.append(f"i{idx}: {typ.name}")
+            py_type = self._convert_type_annotation(typ.name)
+            params.append(f"i{idx}: {py_type}")
         
         params_str = ', '.join(params)
-        self._emit(f"def {node.name}({params_str}) -> {node.output_type.name}:")
+        return_type = self._convert_type_annotation(node.output_type.name)
+        self._emit(f"def {node.name}({params_str}) -> {return_type}:")
         
         self.indent_level += 1
         
@@ -139,7 +183,10 @@ class PythonCodeGenerator:
     def _generate_variable(self, node: VariableDef):
         """Generate Python variable assignment"""
         value = self._generate_expression(node.value)
-        type_hint = f": {node.type_annotation.name}" if node.type_annotation else ""
+        type_hint = ""
+        if node.type_annotation:
+            py_type = self._convert_type_annotation(node.type_annotation.name)
+            type_hint = f": {py_type}"
         self._emit(f"{node.name}{type_hint} = {value}")
     
     def _generate_compound_assignment(self, node: CompoundAssignment):
@@ -217,10 +264,14 @@ class PythonCodeGenerator:
         
         for op in node.operations:
             if isinstance(op, FilterOp):
-                self._emit(f"data = [x for x in data if {self._generate_expression(op.condition)}]")
+                condition = self._generate_expression(op.condition)
+                condition = self._replace_item_keyword(condition, 'x')
+                self._emit(f"data = [x for x in data if {condition}]")
             elif isinstance(op, MapOp):
                 if op.expression:
-                    self._emit(f"data = [{self._generate_expression(op.expression)} for x in data]")
+                    expr = self._generate_expression(op.expression)
+                    expr = self._replace_item_keyword(expr, 'x')
+                    self._emit(f"data = [{expr} for x in data]")
             elif isinstance(op, GroupByOp):
                 self._emit(f"# Group by {op.field}")
                 self._emit(f"from collections import defaultdict")
@@ -271,11 +322,13 @@ class PythonCodeGenerator:
         for op in node.operations:
             if isinstance(op, FilterOp):
                 condition = self._generate_expression(op.condition)
-                result = f"[x for x in {result} if ({condition})]"
+                condition = self._replace_item_keyword(condition, 'x')
+                result = f"[x for x in {result} if {condition}]"
             elif isinstance(op, MapOp):
                 if op.expression:
                     expr = self._generate_expression(op.expression)
-                    result = f"[({expr}) for x in {result}]"
+                    expr = self._replace_item_keyword(expr, 'x')
+                    result = f"[{expr} for x in {result}]"
             elif isinstance(op, GroupByOp):
                 # Use dict comprehension with setdefault pattern
                 result = f"{{k: list(g) for k, g in groupby(sorted({result}, key=lambda x: x.get('{op.field}', '')), key=lambda x: x.get('{op.field}', ''))}}"
@@ -330,6 +383,10 @@ class PythonCodeGenerator:
             end = self._generate_expression(node.end)
             return f"range({start}, {end})"
         
+        elif isinstance(node, PythonExpr):
+            # Direct Python code passthrough
+            return node.code
+        
         elif isinstance(node, StringLiteral):
             if '${' in node.value:
                 # Parse complex expressions in template strings
@@ -342,6 +399,11 @@ class PythonCodeGenerator:
             return 'True' if node.value else 'False'
         
         elif isinstance(node, Identifier):
+            # Convert VL boolean keywords to Python
+            if node.name == 'true':
+                return 'True'
+            elif node.name == 'false':
+                return 'False'
             return node.name
         
         elif isinstance(node, VariableRef):
@@ -355,6 +417,11 @@ class PythonCodeGenerator:
         elif isinstance(node, MemberAccess):
             obj = self._generate_expression(node.object)
             return f"{obj}.{node.property}"
+        
+        elif isinstance(node, IndexAccess):
+            obj = self._generate_expression(node.object)
+            index = self._generate_expression(node.index)
+            return f"{obj}[{index}]"
 
         elif isinstance(node, Operation):
             return self._generate_operation(node)
