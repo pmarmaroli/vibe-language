@@ -592,10 +592,36 @@ op:&&(a,b)               # Logical AND
 op:concat('Hello',' ','World')  # String concat
 ```
 
+### Early Returns in Conditionals
+
+VL supports early return patterns in conditional expressions:
+
+```vl
+if:condition?ret:value:ret:other
+```
+
+**Examples:**
+
+```vl
+# Guard clause
+if:op:==(i1,0)?ret:0:ret:op:/(i0,i1)
+
+# API error handling
+if:op:==(response.status,200)?ret:response.json:ret:{}
+```
+
 ### Conditionals
 
 ```vl
 if:condition?true_expr:false_expr
+```
+
+**Early Returns:**
+
+VL supports early return patterns for guard clauses and error handling:
+
+```vl
+if:condition?ret:value:ret:other
 ```
 
 **Examples:**
@@ -604,11 +630,26 @@ if:condition?true_expr:false_expr
 # Simple ternary
 if:op:>(age,18)?'adult':'minor'
 
+# Guard clause with early return
+if:op:==(divisor,0)?ret:0:ret:op:/(dividend,divisor)
+
+# API error handling
+if:op:==(response.status,200)?ret:response.json:ret:{}
+
 # Nested
 if:op:>(x,0)?'positive':if:op:<(x,0)?'negative':'zero'
 
 # With function calls
 if:isEmpty($list)?'No data':'Has data'
+```
+
+**Complex String Interpolation:**
+
+VL supports full expressions inside `${...}` including conditionals and operations:
+
+```vl
+'Hello ${name}, you are ${if:op:>(age,18)?'adult':'minor'}'
+'Result: ${op:+(x,y)} = ${if:op:>(result,100)?'high':'low'}'
 ```
 
 ### Loops

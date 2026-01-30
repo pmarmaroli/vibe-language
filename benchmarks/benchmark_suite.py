@@ -63,6 +63,26 @@ def run_benchmark():
         {
             "name": "Complex Logic",
             "vl": "fn:process|i:arr|o:arr|v:limit=100|for:item,i0|if:op:>(item.val,limit)?op:*(item.val,2):item.val|ret:i0"
+        },
+        {
+            "name": "Conditional Return",
+            "vl": "fn:max|i:int,int|o:int|ret:if:op:>(i0,i1)?i0:i1"
+        },
+        {
+            "name": "Array Map",
+            "vl": "fn:double_all|i:arr|o:arr|ret:data:i0|map:op:*(item,2)"
+        },
+        {
+            "name": "Variable Assignment",
+            "vl": "v:count=0|v:name='Alice'|v:total=op:+(count,10)"
+        },
+        {
+            "name": "Loop with Accumulator",
+            "vl": "v:total=0|for:idx,range(0,10)|v:total=op:+(total,idx)"
+        },
+        {
+            "name": "Multi-step Calculation",
+            "vl": "v:x=5|v:y=10|v:result=op:/(op:+(x,y),2)"
         }
     ]
     

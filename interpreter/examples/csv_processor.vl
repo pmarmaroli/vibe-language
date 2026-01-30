@@ -1,0 +1,6 @@
+# Data Analysis Example
+meta:analyzeData,data_processor,python
+
+fn:filterAdults|i:arr|o:arr|data:i0|filter:age>18
+
+export:filterAdults

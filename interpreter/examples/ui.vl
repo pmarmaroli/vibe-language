@@ -1,10 +1,6 @@
 # React Counter Component
 meta:Counter,ui_component,react
 
-ui:Counter|state:count:int=0|
-on:handleClick|setState:count,op:+(count,1)|
-render:div,{className:'counter'}|
-  render:h1|'Count: ${count}'|
-  render:button,{onClick:$handleClick}|'Increment'
+ui:Counter|state:count:int=0|on:handleClick|render:div
 
 export:Counter

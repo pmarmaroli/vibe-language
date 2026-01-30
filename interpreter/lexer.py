@@ -242,7 +242,7 @@ class Lexer:
         return Token(TokenType.NUMBER, num_str, start_line, start_col)
     
     def read_string(self) -> Token:
-        """Read a string literal (single quotes)"""
+        """Read a string literal with support for complex ${...} interpolation"""
         start_line = self.line
         start_col = self.column
         
@@ -251,10 +251,37 @@ class Lexer:
         self.advance()
         
         string_val = ''
-        while self.current_char() and self.current_char() != quote_char:
+        interpolation_depth = 0  # Track nesting level inside ${...}
+        
+        while self.current_char():
+            # Check if we're starting an interpolation
+            if self.current_char() == '$' and self.peek_char() == '{':
+                string_val += self.current_char()  # Add $
+                self.advance()
+                string_val += self.current_char()  # Add {
+                self.advance()
+                interpolation_depth += 1
+                continue
+            
+            # Track closing braces in interpolation
+            if interpolation_depth > 0:
+                if self.current_char() == '{':
+                    interpolation_depth += 1
+                elif self.current_char() == '}':
+                    interpolation_depth -= 1
+                
+                # Inside interpolation, quotes don't terminate the string
+                string_val += self.current_char()
+                self.advance()
+                continue
+            
+            # Outside interpolation, check for string termination
+            if self.current_char() == quote_char:
+                break
+            
+            # Handle escape sequences
             if self.current_char() == '\\':
                 self.advance()
-                # Handle escape sequences
                 escape_char = self.current_char()
                 if escape_char == 'n':
                     string_val += '\n'

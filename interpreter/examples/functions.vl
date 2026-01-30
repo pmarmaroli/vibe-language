@@ -10,14 +10,10 @@ fn:multiply|i:int,int|o:int|ret:op:*(i0,i1)
 fn:max|i:int,int|o:int|ret:if:op:>(i0,i1)?i0:i1
 
 # With loops
-fn:sum_range|i:int|o:int|
-  v:total=0|
-  for:i,range(0,$i)|v:total=op:+(total,i)|
-  ret:$total
+fn:sum_range|i:int|o:int|v:total=0|for:idx,range(0,i0)|v:total=op:+(total,idx)|ret:total
 
 # Array operations
-fn:double_all|i:arr|o:arr|
-  data:$i|map:op:*(item,2)
+fn:double_all|i:arr|o:arr|ret:data:i0|map:op:*(item,2)
 
 export:add
 export:multiply

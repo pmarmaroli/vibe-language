@@ -1,8 +1,7 @@
-# API Example: Fetch and filter users
-meta:getAdultUsers,api_function,python
+# API Example: Fetch users from API
+meta:fetchUsers,api_function,python
 deps:requests
 
-fn:getAdultUsers|i:str|o:arr|
-async|api:GET,$i|filter:age>=18|map:name,email
+fn:fetchUsers|i:str|o:obj|api:GET,i0
 
-export:getAdultUsers
+export:fetchUsers

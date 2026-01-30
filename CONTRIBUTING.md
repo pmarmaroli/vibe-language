@@ -75,11 +75,13 @@ cd vibe-language
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install development dependencies (when available)
-pip install -r requirements-dev.txt
+# Install development dependencies
+pip install tiktoken
 
-# Run tests (when available)
-pytest
+# Run test suites
+python test_examples.py      # Test all example programs
+python test_robustness.py    # Test complex scenarios (100% pass rate)
+python benchmarks/benchmark_suite.py  # Token efficiency benchmarks
 ```
 
 ## 📝 Contribution Process

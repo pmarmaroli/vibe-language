@@ -31,6 +31,13 @@ VL aims to become the universal programming language for the AI era—enabling s
 - Technical documentation
 - **Direct call syntax (`@`) for improved token efficiency**
 - **Benchmark suite for token efficiency validation**
+- **Robustness testing: 100% pass rate on complex scenarios**
+- **Advanced features:**
+  - Nested loops with any variable names
+  - Complex string interpolation with expressions
+  - Early returns in conditionals
+  - API calls as expressions
+  - Context-aware keyword handling
 
 ### 🚧 In Progress
 

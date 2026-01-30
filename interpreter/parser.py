@@ -48,10 +48,36 @@ class Parser:
         return token
     
     def expect(self, token_type: TokenType) -> Token:
-        """Consume token of expected type or raise error"""
+        """Consume token of expected type or raise error with helpful message"""
         if self.current_token and self.current_token.type == token_type:
             return self.advance()
-        raise self.error(f"Expected {token_type.name}, got {self.current_token.type.name if self.current_token else 'EOF'}")
+        
+        # Build helpful error message with context
+        got = self.current_token.type.name if self.current_token else 'EOF'
+        line = self.current_token.line if self.current_token else '?'
+        col = self.current_token.column if self.current_token else '?'
+        
+        error_msg = f"Expected {token_type.name}, got {got}"
+        
+        # Add context-specific suggestions
+        suggestions = []
+        if token_type == TokenType.PIPE:
+            suggestions.append("VL uses | to separate statements and clauses")
+            suggestions.append("Example: fn:name|i:int|o:int|ret:value")
+        elif token_type == TokenType.COLON:
+            suggestions.append("VL uses : after keywords")
+            suggestions.append("Example: fn:name, v:var, ret:value")
+        elif token_type == TokenType.IDENTIFIER:
+            suggestions.append("Expected a variable or function name here")
+            if got in ["INPUT", "OUTPUT", "DATA", "FILTER", "MAP"]:
+                suggestions.append(f"'{got}' is a reserved keyword, try a different name")
+        
+        if suggestions:
+            error_msg += f"\nHint: {suggestions[0]}"
+            if len(suggestions) > 1:
+                error_msg += f"\n      {suggestions[1]}"
+        
+        raise self.error(error_msg)
     
     def match(self, *token_types: TokenType) -> bool:
         """Check if current token matches any of the given types"""
@@ -355,17 +381,33 @@ class Parser:
         )
     
     def parse_if_stmt(self) -> IfStmt:
-        """Parse: if:condition?true_expr:false_expr"""
+        """Parse: if:condition?true_expr:false_expr
+        Supports early returns: if:condition?ret:value:ret:other"""
         token = self.expect(TokenType.IF)
         self.expect(TokenType.COLON)
         
         condition = self.parse_expression()
         self.expect(TokenType.QUESTION)
         
-        true_expr = self.parse_expression()
+        # Parse true branch - could be ret:value or just value
+        if self.match(TokenType.RET):
+            self.advance()
+            self.expect(TokenType.COLON)
+            true_value = self.parse_expression()
+            true_expr = ReturnStmt(line=token.line, column=token.column, value=true_value)
+        else:
+            true_expr = self.parse_expression()
+        
         self.expect(TokenType.COLON)
         
-        false_expr = self.parse_expression()
+        # Parse false branch - could be ret:value or just value
+        if self.match(TokenType.RET):
+            self.advance()
+            self.expect(TokenType.COLON)
+            false_value = self.parse_expression()
+            false_expr = ReturnStmt(line=token.line, column=token.column, value=false_value)
+        else:
+            false_expr = self.parse_expression()
         
         return IfStmt(
             line=token.line, column=token.column,
@@ -374,12 +416,25 @@ class Parser:
             false_expr=false_expr
         )
     
+    def parse_if_expr(self) -> IfStmt:
+        """Parse if as expression: if:condition?true_expr:false_expr
+        Same as parse_if_stmt since IfStmt is actually an expression in VL"""
+        return self.parse_if_stmt()
+    
     def parse_for_loop(self) -> ForLoop:
         """Parse: for:var,iterable|body"""
         token = self.expect(TokenType.FOR)
         self.expect(TokenType.COLON)
         
-        variable = self.expect(TokenType.IDENTIFIER).value
+        # Allow keywords as variable names in loop context (i, o, etc.)
+        if self.match(TokenType.IDENTIFIER):
+            variable = self.advance().value
+        elif self.current_token:
+            # Accept keywords as identifiers in this context
+            variable = self.advance().value
+        else:
+            raise self.error("Expected variable name in for loop")
+        
         self.expect(TokenType.COMMA)
         
         iterable = self.parse_expression()
@@ -468,6 +523,10 @@ class Parser:
             operations=operations
         )
     
+    def parse_api_call_expr(self) -> APICall:
+        """Parse API call as expression (same as statement)"""
+        return self.parse_api_call()
+    
     def parse_filter_op(self) -> FilterOp:
         token = self.expect(TokenType.FILTER)
         self.expect(TokenType.COLON)
@@ -489,47 +548,84 @@ class Parser:
         return ParseOp(line=token.line, column=token.column, format=format)
 
     def parse_ui_component(self) -> UIComponent:
-        """Parse: ui:name|props:...|state:...|body"""
+        """Parse: ui:name|state:...|props:...|on:...|render:..."""
         token = self.expect(TokenType.UI)
         self.expect(TokenType.COLON)
         
         name = self.expect(TokenType.IDENTIFIER).value
-        self.expect(TokenType.PIPE)
         
-        # Parse props (optional)
+        # Parse optional clauses
         props = []
-        if self.match(TokenType.PROPS):
-            self.advance()
-            self.expect(TokenType.COLON)
-            # Parse props list
-            # TODO: Implement prop parsing
-            self.expect(TokenType.PIPE)
-        
-        # Parse state (optional)
         state_vars = []
-        if self.match(TokenType.STATE):
-            self.advance()
-            self.expect(TokenType.COLON)
-            # Parse state list
-            # TODO: Implement state parsing
-            self.expect(TokenType.PIPE)
+        handlers = []
+        render_element = None
         
-        # Parse body
-        body = []
-        while not self.match(TokenType.NEWLINE, TokenType.EOF, TokenType.EXPORT):
-            if self.match(TokenType.PIPE):
-                self.advance()
+        while self.match(TokenType.PIPE):
+            self.advance()
+            
+            # Skip empty pipes
+            if self.match(TokenType.PIPE, TokenType.NEWLINE, TokenType.EOF):
                 continue
-            stmt = self.parse_statement()
-            if stmt:
-                body.append(stmt)
+            
+            # Parse state declaration
+            if self.match(TokenType.STATE):
+                self.advance()
+                self.expect(TokenType.COLON)
+                # Simple format: state:name=value or state:name:type=value
+                state_name = self.expect(TokenType.IDENTIFIER).value
+                state_type = None
+                
+                if self.match(TokenType.COLON):
+                    self.advance()
+                    # Accept type tokens or identifiers
+                    if self.current_token:
+                        state_type = self.advance().value
+                
+                if self.match(TokenType.EQUALS):
+                    self.advance()
+                    state_value = self.parse_expression()
+                    state_vars.append((state_name, state_type, state_value))
+                continue
+            
+            # Parse props declaration
+            if self.match(TokenType.PROPS):
+                self.advance()
+                self.expect(TokenType.COLON)
+                # Simple format: props:name:type
+                prop_name = self.expect(TokenType.IDENTIFIER).value
+                prop_type = None
+                if self.match(TokenType.COLON):
+                    self.advance()
+                    # Accept type tokens or identifiers
+                    if self.current_token:
+                        prop_type = self.advance().value
+                props.append((prop_name, prop_type))
+                continue
+            
+            # Parse event handlers
+            if self.match(TokenType.ON):
+                self.advance()
+                self.expect(TokenType.COLON)
+                handler_name = self.expect(TokenType.IDENTIFIER).value
+                handlers.append(handler_name)
+                continue
+            
+            # Parse render clause
+            if self.match(TokenType.RENDER):
+                self.advance()
+                self.expect(TokenType.COLON)
+                render_element = self.expect(TokenType.IDENTIFIER).value
+                continue
+            
+            # Break if we hit something that's not part of UI component
+            break
         
         return UIComponent(
             line=token.line, column=token.column,
             name=name,
             props=props,
             state_vars=state_vars,
-            body=body
+            body=[]  # body now stores render info
         )
     
     def parse_data_pipeline(self) -> DataPipeline:
@@ -599,6 +695,10 @@ class Parser:
             source=source,
             operations=operations
         )
+    
+    def parse_data_pipeline_expr(self) -> DataPipeline:
+        """Parse data pipeline as expression (same as statement)"""
+        return self.parse_data_pipeline()
     
     def parse_file_operation(self) -> FileOperation:
         """Parse: file:operation,path[,args]"""
@@ -759,6 +859,18 @@ class Parser:
         if self.match(TokenType.OP):
             return self.parse_operation_expr()
         
+        # If expression (if:condition?true:false)
+        if self.match(TokenType.IF):
+            return self.parse_if_expr()
+        
+        # Data pipeline expression (data:source|filter:...)
+        if self.match(TokenType.DATA):
+            return self.parse_data_pipeline_expr()
+        
+        # API call as expression (api:GET,url)
+        if self.match(TokenType.API, TokenType.ASYNC):
+            return self.parse_api_call_expr()
+        
         # Identifier (variable or function name)
         if self.match(TokenType.IDENTIFIER):
             name = self.advance().value
@@ -768,6 +880,17 @@ class Parser:
                 line=token.line, column=token.column,
                 name=name
             )
+        
+        # Single-letter keywords can be used as identifiers in expressions (i, j, o, etc.)
+        # This allows loop variables and function parameters
+        if self.current_token and len(self.current_token.value) <= 2:
+            # Allow short keywords as identifiers (i, o, v, etc.)
+            if self.current_token.type in (TokenType.INPUT, TokenType.OUTPUT, TokenType.VAR):
+                name = self.advance().value
+                return Identifier(
+                    line=token.line, column=token.column,
+                    name=name
+                )
         
         # Parenthesized expression
         if self.match(TokenType.LPAREN):

@@ -84,6 +84,8 @@ class PythonCodeGenerator:
             self._generate_data_pipeline(node)
         elif isinstance(node, FileOperation):
             self._generate_file_operation(node)
+        elif isinstance(node, UIComponent):
+            self._generate_ui_component(node)
         else:
             self._emit(f"# TODO: Unsupported statement type: {type(node).__name__}")
     
@@ -129,11 +131,18 @@ class PythonCodeGenerator:
         condition = self._generate_expression(node.condition)
         self._emit(f"if {condition}:")
         self.indent_level += 1
-        self._emit(self._generate_expression(node.true_expr))
+        # Handle both expressions and return statements
+        if isinstance(node.true_expr, ReturnStmt):
+            self._generate_return(node.true_expr)
+        else:
+            self._emit(self._generate_expression(node.true_expr))
         self.indent_level -= 1
         self._emit("else:")
         self.indent_level += 1
-        self._emit(self._generate_expression(node.false_expr))
+        if isinstance(node.false_expr, ReturnStmt):
+            self._generate_return(node.false_expr)
+        else:
+            self._emit(self._generate_expression(node.false_expr))
         self.indent_level -= 1
     
     def _generate_for_loop(self, node: ForLoop):
@@ -162,6 +171,12 @@ class PythonCodeGenerator:
         endpoint = self._generate_expression(node.endpoint)
         self._emit(f"# API Call: {node.method}")
         self._emit(f"requests.{method}({endpoint})")
+    
+    def _generate_api_call_expr(self, node: APICall) -> str:
+        """Generate API call as expression (for assignment/return)"""
+        method = node.method.lower()
+        endpoint = self._generate_expression(node.endpoint)
+        return f"requests.{method}({endpoint})"
 
     def _generate_data_pipeline(self, node: DataPipeline):
         """Generate Python data processing pipeline"""
@@ -176,6 +191,22 @@ class PythonCodeGenerator:
                  if op.expression:
                      self._emit(f"data = [{self._generate_expression(op.expression)} for x in data]")
     
+    def _generate_data_pipeline_expr(self, node: DataPipeline) -> str:
+        """Generate data pipeline as an expression (for return statements)"""
+        source = self._generate_expression(node.source)
+        result = source
+        
+        for op in node.operations:
+            if isinstance(op, FilterOp):
+                condition = self._generate_expression(op.condition)
+                result = f"[x for x in {result} if {condition}]"
+            elif isinstance(op, MapOp):
+                if op.expression:
+                    expr = self._generate_expression(op.expression)
+                    result = f"[{expr} for x in {result}]"
+        
+        return result
+    
     def _generate_file_operation(self, node: FileOperation):
         """Generate Python file I/O operations"""
         op = node.operation
@@ -189,6 +220,24 @@ class PythonCodeGenerator:
                 content = self._generate_expression(node.arguments[0])
                 self._emit(f"with open({path}, 'w') as f:")
                 self._emit(f"    f.write({content})")
+    
+    def _generate_ui_component(self, node: UIComponent):
+        """Generate React/UI component (basic support)"""
+        self._emit(f"# UI Component: {node.name}")
+        
+        # Generate as a React functional component
+        self._emit(f"def {node.name}(props):")
+        self.indent_level += 1
+        
+        # Generate state hooks if any
+        for state_name, state_type, state_value in node.state_vars:
+            value = self._generate_expression(state_value) if state_value else "None"
+            self._emit(f"# State: {state_name} = {value}")
+        
+        # Simple placeholder return
+        self._emit(f"return None  # React JSX would go here")
+        
+        self.indent_level -= 1
 
     def _generate_expression(self, node: Expression) -> str:
         """Generate Python expression"""
@@ -197,8 +246,9 @@ class PythonCodeGenerator:
         
         elif isinstance(node, StringLiteral):
             if '${' in node.value:
-                value = node.value.replace('${', '{')
-                return f"f'{value}'"
+                # Parse complex expressions in template strings
+                result = self._process_string_template(node.value)
+                return result
             else:
                 return f"'{node.value}'"
         
@@ -232,6 +282,25 @@ class PythonCodeGenerator:
                               for k, v in node.pairs])
             return f"{{{pairs}}}"
         
+        elif isinstance(node, IfStmt):
+            # If statement can be used as expression (ternary)
+            # Handle ReturnStmt in branches (can't be ternary if returns are involved)
+            if isinstance(node.true_expr, ReturnStmt) or isinstance(node.false_expr, ReturnStmt):
+                # This should be handled as a statement, not expression
+                return "None  # ERROR: If with return branches should not be in expression context"
+            condition = self._generate_expression(node.condition)
+            true_val = self._generate_expression(node.true_expr)
+            false_val = self._generate_expression(node.false_expr)
+            return f"({true_val} if {condition} else {false_val})"
+        
+        elif isinstance(node, DataPipeline):
+            # Data pipeline as expression
+            return self._generate_data_pipeline_expr(node)
+        
+        elif isinstance(node, APICall):
+            # API call as expression
+            return self._generate_api_call_expr(node)
+        
         else:
             return f"None # TODO: {type(node).__name__}"
     
@@ -256,7 +325,77 @@ class PythonCodeGenerator:
         else:
             operands = ', '.join([self._generate_expression(o) for o in node.operands])
             return f"{op}({operands})"
-
+    
+    def _process_string_template(self, template: str) -> str:
+        """Process string template with complex VL expressions in ${...}"""
+        import re
+        from lexer import Lexer
+        from parser import Parser
+        
+        result_parts = []
+        last_end = 0
+        
+        # Find all ${...} blocks, respecting nesting
+        i = 0
+        while i < len(template):
+            if i < len(template) - 1 and template[i:i+2] == '${':
+                # Found start of interpolation
+                # Add any literal text before this
+                if i > last_end:
+                    result_parts.append(repr(template[last_end:i]))
+                
+                # Find matching closing brace
+                depth = 1
+                j = i + 2
+                while j < len(template) and depth > 0:
+                    if template[j] == '{':
+                        depth += 1
+                    elif template[j] == '}':
+                        depth -= 1
+                    j += 1
+                
+                if depth == 0:
+                    # Extract the VL expression
+                    vl_expr = template[i+2:j-1]
+                    
+                    # Parse and generate Python code for it
+                    try:
+                        lexer = Lexer(vl_expr)
+                        tokens = lexer.tokenize()
+                        parser = Parser(tokens)
+                        
+                        # Parse as expression (could be if, op, identifier, etc.)
+                        expr_node = parser.parse_expression()
+                        py_expr = self._generate_expression(expr_node)
+                        
+                        result_parts.append(f"({py_expr})")
+                    except Exception:
+                        # Fallback to simple identifier
+                        result_parts.append(f"{{{vl_expr}}}")
+                    
+                    last_end = j
+                    i = j
+                else:
+                    i += 1
+            else:
+                i += 1
+        
+        # Add any remaining literal text
+        if last_end < len(template):
+            result_parts.append(repr(template[last_end:]))
+        
+        # Combine into Python f-string
+        if len(result_parts) == 0:
+            return "''"
+        elif len(result_parts) == 1 and result_parts[0].startswith("'"):
+            return result_parts[0]
+        else:
+            # Build f-string with proper formatting
+            combined = 'f"' + ''.join([
+                part[1:-1] if part.startswith("'") else '{' + part + '}'
+                for part in result_parts
+            ]) + '"'
+            return combined
 
 
 if __name__ == "__main__":

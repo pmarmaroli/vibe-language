@@ -1,0 +1,7 @@
+# Web Scraping Example - Fetch Articles
+meta:scrapeNews,function,python
+deps:requests
+
+fn:fetchNews|i:str|o:obj|api:GET,i0
+
+export:fetchNews
