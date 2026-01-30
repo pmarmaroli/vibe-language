@@ -29,6 +29,8 @@ VL aims to become the universal programming language for the AI era—enabling s
 - VL → Python compiler (MVP)
 - Example programs
 - Technical documentation
+- **Direct call syntax (`@`) for improved token efficiency**
+- **Benchmark suite for token efficiency validation**
 
 ### 🚧 In Progress
 

@@ -70,6 +70,8 @@ class PythonCodeGenerator:
             self._generate_variable(node)
         elif isinstance(node, ReturnStmt):
             self._generate_return(node)
+        elif isinstance(node, DirectCall):
+            self._generate_direct_call(node)
         elif isinstance(node, IfStmt):
             self._generate_if_stmt(node)
         elif isinstance(node, ForLoop):
@@ -116,6 +118,11 @@ class PythonCodeGenerator:
         """Generate Python return statement"""
         value = self._generate_expression(node.value)
         self._emit(f"return {value}")
+    
+    def _generate_direct_call(self, node: DirectCall):
+        """Generate Python direct function call (without assignment)"""
+        function_code = self._generate_expression(node.function)
+        self._emit(function_code)
 
     def _generate_if_stmt(self, node: IfStmt):
         """Generate Python if statement"""
@@ -205,8 +212,13 @@ class PythonCodeGenerator:
             return node.name 
         
         elif isinstance(node, FunctionCall):
+            callee = self._generate_expression(node.callee)
             args = ', '.join([self._generate_expression(arg) for arg in node.arguments])
-            return f"{node.name}({args})"
+            return f"{callee}({args})"
+            
+        elif isinstance(node, MemberAccess):
+            obj = self._generate_expression(node.object)
+            return f"{obj}.{node.property}"
 
         elif isinstance(node, Operation):
             return self._generate_operation(node)

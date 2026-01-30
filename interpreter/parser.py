@@ -89,6 +89,11 @@ class Parser:
                 self.skip_newlines()
                 continue
             
+            # Handle PIPE separator at top level (e.g. v:x=1|v:y=2)
+            if self.match(TokenType.PIPE):
+                self.advance()
+                continue
+            
             stmt = self.parse_statement()
             if stmt:
                 statements.append(stmt)
@@ -167,6 +172,10 @@ class Parser:
         if not self.current_token:
             return None
         
+        # Direct function call with @ syntax
+        if self.match(TokenType.AT):
+            return self.parse_direct_call()
+        
         # Function definition
         if self.match(TokenType.FN):
             return self.parse_function_def()
@@ -230,18 +239,40 @@ class Parser:
         output_type = self.parse_type()
         self.expect(TokenType.PIPE)
         
-        # Parse body (statements separated by |)
+        # Parse body (statements separated by | or newlines)
         body = []
-        while not self.match(TokenType.NEWLINE, TokenType.EOF, TokenType.EXPORT):
+        while not self.match(TokenType.EOF, TokenType.EXPORT):
+            if self.match(TokenType.NEWLINE):
+                self.skip_newlines()
+                continue
+                
+            # If we hit another core keyword that shouldn't be inside a function without context?
+            # Actually, functions can contain any statement.
+            # But we need to know when the function ends.
+            # VL relies on indentation? No, it's not whitespace sensitive in that way.
+            # It relies on specific delimiters.
+            # BUT the prompt example shows multi-line indentation.
+            # If VL is truly "universal" and uses `|`, maybe indentation is syntactic sugar?
+            # For now, let's just consume until we hit something that clearly ends it.
+            # But wait, `fn` doesn't have an `end` token.
+            # The previous logic broke on NEWLINE.
+            # If we allow NEWLINE, what stops it?
+            # `EXPORT` stops it. `EOF` stops it.
+            # Another `FN`?
+            if self.match(TokenType.FN):
+                 break
+            
+            # Additional safety: If we see META or DEPS, break
+            if self.match(TokenType.META, TokenType.DEPS):
+                break
+                
             stmt = self.parse_statement()
             if stmt:
                 body.append(stmt)
             
-            # Check for pipe separator or end
             if self.match(TokenType.PIPE):
                 self.advance()
-            else:
-                break
+
         
         return FunctionDef(
             line=token.line, column=token.column,
@@ -311,6 +342,16 @@ class Parser:
         return ReturnStmt(
             line=token.line, column=token.column,
             value=value
+        )
+    
+    def parse_direct_call(self) -> DirectCall:
+        """Parse: @function(args) - Direct function call without variable assignment"""
+        token = self.expect(TokenType.AT)
+        function_expr = self.parse_expression()
+        
+        return DirectCall(
+            line=token.line, column=token.column,
+            function=function_expr
         )
     
     def parse_if_stmt(self) -> IfStmt:
@@ -402,14 +443,51 @@ class Parser:
             self.advance()
             options = self.parse_expression()  # Should be ObjectLiteral
         
+        # Parse chained operations (filter, map, etc.)
+        operations = []
+        while self.match(TokenType.PIPE):
+            # Look ahead to see if it's a data operation
+            next_token = self.peek(1)
+            if next_token and next_token.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
+                self.advance() # consume PIPE
+                if self.match(TokenType.FILTER):
+                    operations.append(self.parse_filter_op())
+                elif self.match(TokenType.MAP):
+                    operations.append(self.parse_map_op())
+                elif self.match(TokenType.PARSE):
+                    operations.append(self.parse_parse_op())
+            else:
+                break
+        
         return APICall(
             line=token.line, column=token.column,
             method=method,
             endpoint=endpoint,
             options=options,
-            is_async=is_async
+            is_async=is_async,
+            operations=operations
         )
     
+    def parse_filter_op(self) -> FilterOp:
+        token = self.expect(TokenType.FILTER)
+        self.expect(TokenType.COLON)
+        condition = self.parse_expression()
+        return FilterOp(line=token.line, column=token.column, condition=condition)
+
+    def parse_map_op(self) -> MapOp:
+        token = self.expect(TokenType.MAP)
+        self.expect(TokenType.COLON)
+        # TODO: Better map parsing for fields vs expression
+        # For now, assume expression
+        expr = self.parse_expression()
+        return MapOp(line=token.line, column=token.column, fields=None, expression=expr)
+
+    def parse_parse_op(self) -> ParseOp:
+        token = self.expect(TokenType.PARSE)
+        self.expect(TokenType.COLON)
+        format = self.expect(TokenType.IDENTIFIER).value
+        return ParseOp(line=token.line, column=token.column, format=format)
+
     def parse_ui_component(self) -> UIComponent:
         """Parse: ui:name|props:...|state:...|body"""
         token = self.expect(TokenType.UI)
@@ -478,8 +556,14 @@ class Parser:
             elif self.match(TokenType.MAP):
                 self.advance()
                 self.expect(TokenType.COLON)
-                # TODO: Parse map operation
-                pass
+                # TODO support map:field1,field2 syntax
+                transformation = self.parse_expression()
+                operations.append(MapOp(
+                    line=self.current_token.line,
+                    column=self.current_token.column,
+                    fields=None,
+                    expression=transformation
+                ))
             elif self.match(TokenType.GROUPBY):
                 self.advance()
                 self.expect(TokenType.COLON)
@@ -489,7 +573,26 @@ class Parser:
                     column=self.current_token.column,
                     field=field
                 ))
-            # Add more operations...
+            elif self.match(TokenType.AGG):
+                self.advance()
+                self.expect(TokenType.COLON)
+                func = self.expect(TokenType.IDENTIFIER).value
+                operations.append(AggregateOp(
+                    line=self.current_token.line,
+                    column=self.current_token.column,
+                    function=func,
+                    field=None
+                ))
+            elif self.match(TokenType.SORT):
+                self.advance()
+                self.expect(TokenType.COLON)
+                field = self.expect(TokenType.IDENTIFIER).value
+                operations.append(SortOp(
+                    line=self.current_token.line,
+                    column=self.current_token.column,
+                    field=field,
+                    order='asc'
+                ))
         
         return DataPipeline(
             line=token.line, column=token.column,
@@ -580,7 +683,45 @@ class Parser:
                 operands=[operand]
             )
         
-        return self.parse_primary()
+        return self.parse_postfix()
+
+    def parse_postfix(self) -> Expression:
+        """Parse postfix expressions (calls, member access)"""
+        expr = self.parse_primary()
+        
+        while True:
+            # Member access: obj.prop
+            if self.match(TokenType.DOT):
+                self.advance()
+                prop_token = self.expect(TokenType.IDENTIFIER)
+                expr = MemberAccess(
+                    line=expr.line,
+                    column=expr.column,
+                    object=expr,
+                    property=prop_token.value
+                )
+            
+            # Function call: func(args)
+            elif self.match(TokenType.LPAREN):
+                self.advance()
+                args = []
+                while not self.match(TokenType.RPAREN):
+                    args.append(self.parse_expression())
+                    if self.match(TokenType.COMMA):
+                        self.advance()
+                self.expect(TokenType.RPAREN)
+                
+                expr = FunctionCall(
+                    line=expr.line,
+                    column=expr.column,
+                    callee=expr,
+                    arguments=args
+                )
+            
+            else:
+                break
+                
+        return expr
     
     def parse_primary(self) -> Expression:
         """Parse primary expressions (literals, identifiers, etc.)"""
@@ -621,22 +762,6 @@ class Parser:
         # Identifier (variable or function name)
         if self.match(TokenType.IDENTIFIER):
             name = self.advance().value
-            
-            # Function call
-            if self.match(TokenType.LPAREN):
-                self.advance()
-                args = []
-                while not self.match(TokenType.RPAREN):
-                    args.append(self.parse_expression())
-                    if self.match(TokenType.COMMA):
-                        self.advance()
-                self.expect(TokenType.RPAREN)
-                
-                return FunctionCall(
-                    line=token.line, column=token.column,
-                    name=name,
-                    arguments=args
-                )
             
             # Just identifier
             return Identifier(

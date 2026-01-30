@@ -86,6 +86,12 @@ class ReturnStmt(Statement):
 
 
 @dataclass
+class DirectCall(Statement):
+    """@function(args) - Direct function call without assignment"""
+    function: 'Expression'
+
+
+@dataclass
 class IfStmt(Statement):
     """if:condition?true_expr:false_expr"""
     condition: 'Expression'
@@ -159,6 +165,13 @@ class VariableRef(Expression):
 
 
 @dataclass
+class MemberAccess(Expression):
+    """obj.property"""
+    object: Expression
+    property: str
+
+
+@dataclass
 class Operation(Expression):
     """op:operator(arg1,arg2,...)"""
     operator: str  # +, -, *, /, ==, !=, etc.
@@ -168,7 +181,7 @@ class Operation(Expression):
 @dataclass
 class FunctionCall(Expression):
     """Function call: funcName(arg1,arg2)"""
-    name: str
+    callee: Expression
     arguments: List[Expression]
 
 
@@ -182,6 +195,7 @@ class APICall(Statement):
     endpoint: Expression
     options: Optional[ObjectLiteral]
     is_async: bool = False
+    operations: List['DataOperation'] = None  # Chained operations (filter, map)
 
 
 @dataclass

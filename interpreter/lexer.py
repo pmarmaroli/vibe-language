@@ -80,12 +80,14 @@ class TokenType(Enum):
     EQUALS = auto()         # =
     QUESTION = auto()       # ?
     DOLLAR = auto()         # $
+    AT = auto()             # @
     LPAREN = auto()         # (
     RPAREN = auto()         # )
     LBRACE = auto()         # {
     RBRACE = auto()         # }
     LBRACKET = auto()       # [
     RBRACKET = auto()       # ]
+    DOT = auto()            # .
     
     # Literals
     NUMBER = auto()
@@ -324,6 +326,25 @@ class Lexer:
             if char.isdigit():
                 self.tokens.append(self.read_number())
                 continue
+                
+            # Identifiers and keywords (start with letter or underscore)
+            # But wait, what if it's a number like 1.2? read_number handles it.
+            # What if it is a dot operator?
+            if char == '.':
+                # Check if it's part of a number (e.g. .5)
+                # But read_number expects digit first usually, or handled here?
+                # My read_number splits on isdigit or DOT. 
+                # But here I am dispatching on `char.isdigit()`.
+                # If char is `.` and next is digit, it's a number.
+                if self.peek_char() and self.peek_char().isdigit():
+                     self.tokens.append(self.read_number())
+                     continue
+                
+                # Otherwise it's a DOT delimiter
+                token = Token(TokenType.DOT, '.', self.line, self.column)
+                self.tokens.append(token)
+                self.advance()
+                continue
             
             # Strings
             if char in ('"', "'"):
@@ -358,7 +379,7 @@ class Lexer:
                 ',': TokenType.COMMA,
                 '=': TokenType.EQUALS,
                 '?': TokenType.QUESTION,
-                '$': TokenType.DOLLAR,
+                '$': TokenType.DOLLAR,                '@': TokenType.AT,                '@': TokenType.AT,
                 '(': TokenType.LPAREN,
                 ')': TokenType.RPAREN,
                 '{': TokenType.LBRACE,

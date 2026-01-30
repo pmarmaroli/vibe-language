@@ -536,6 +536,46 @@ v:items:arr=[1,2,3]      # explicit type
 v:total:float=0.0        # explicit type
 ```
 
+### Direct Function Calls
+
+For simple function calls without needing the return value, use the `@` syntax:
+
+```vl
+@function(args)
+```
+
+**Benefits:**
+- More concise than variable assignment
+- Reduces token count for simple operations
+- Generates clean Python/JavaScript output
+
+**Examples:**
+
+```vl
+# Print statement
+@print('Hello World')
+
+# API call
+@requests.get('api/users')
+
+# File operations
+@fs.writeFile('data.txt','content')
+
+# Method chaining
+@logger.info('Starting process').timestamp()
+```
+
+**Comparison:**
+
+```vl
+# Old syntax (verbose)
+v:msg='Hello'|v:x=print(msg)  # 13 tokens
+
+# New @ syntax (concise)
+@print('Hello')                # 6 tokens
+# 54% token reduction!
+```
+
 ### Operations
 
 ```vl
