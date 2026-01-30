@@ -7,14 +7,14 @@ Validates type annotations and reports mismatches.
 
 from typing import Dict, Optional, Set, List, Tuple
 from dataclasses import dataclass
-from ast_nodes import (
+from .ast_nodes import (
     ASTNode, Program, FunctionDef, VariableDef, ReturnStmt,
     Type, Expression, NumberLiteral, StringLiteral, BooleanLiteral,
     Identifier, Operation, FunctionCall,
     ArrayLiteral, ObjectLiteral, MemberAccess, DataPipeline,
     UIComponent, FunctionExpr, CompoundAssignment, RangeExpr, IfStmt
 )
-from errors import TypeError, SourceLocation
+from .errors import TypeError, SourceLocation
 
 
 @dataclass

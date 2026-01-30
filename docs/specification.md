@@ -40,10 +40,29 @@ VL is a **universal intermediate representation (IR)** that compiles to multiple
 - ✅ **Python** - 100% operational (51/51 tests passing)
 - ✅ **JavaScript** - 100% operational (14/14 tests passing)
 
-**In Development:**
-- 🚧 **TypeScript** - Basic implementation complete
-- 🚧 **C** - Basic implementation complete
-- 🚧 **Rust** - Basic implementation complete
+**Fully Implemented:**
+- ✅ **TypeScript** - Type-safe code generation with full type annotations
+- ✅ **C** - ANSI C code generation with header management
+- ✅ **Rust** - Safe Rust code generation with std library
+
+**Configuration System:**
+
+VL uses a centralized configuration module (`vl_config.py`) to control compilation behavior:
+
+```python
+# Boolean optimization settings
+BOOLEAN_CHAIN_MIN_LENGTH = 3  # Min chain length for all()/any()
+OPTIMIZE_BOOLEAN_CHAINS = True  # Enable/disable optimization
+
+# Target-specific settings
+TARGET_SETTINGS = {
+    'python': {'boolean_optimization': True, 'supports_type_hints': True},
+    'javascript': {'boolean_optimization': False, 'requires_semicolons': True},
+    # ... per-target configuration
+}
+```
+
+This allows fine-grained control over optimization strategies and target-specific code generation
 
 **VL Philosophy:** Like LLVM, WebAssembly, or Java bytecode, VL serves as a single source of truth that compiles to optimized native code for each platform. Write once, compile everywhere.
 

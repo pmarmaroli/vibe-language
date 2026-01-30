@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Optional, List
 from enum import Enum
 
-from lexer import Lexer
-from parser import Parser
-from type_checker import type_check
-from errors import TypeError
+from .lexer import Lexer
+from .parser import Parser
+from .type_checker import type_check
+from .errors import TypeError
 
 
 class TargetLanguage(Enum):
@@ -100,27 +100,27 @@ class Compiler:
     def _generate_code(self) -> str:
         """Generate code for the target language"""
         if self.target == TargetLanguage.PYTHON:
-            from codegen_python import PythonCodeGenerator
+            from .codegen.python import PythonCodeGenerator
             generator = PythonCodeGenerator(self.ast)
             return generator.generate()
         
         elif self.target == TargetLanguage.JAVASCRIPT:
-            from codegen_js import JSCodeGenerator
+            from .codegen.javascript import JSCodeGenerator
             generator = JSCodeGenerator(self.ast)
             return generator.generate()
         
         elif self.target == TargetLanguage.TYPESCRIPT:
-            from codegen_ts import TSCodeGenerator
+            from .codegen.typescript import TSCodeGenerator
             generator = TSCodeGenerator(self.ast)
             return generator.generate()
         
         elif self.target == TargetLanguage.C:
-            from codegen_c import CCodeGenerator
+            from .codegen.c import CCodeGenerator
             generator = CCodeGenerator(self.ast)
             return generator.generate()
         
         elif self.target == TargetLanguage.RUST:
-            from codegen_rust import RustCodeGenerator
+            from .codegen.rust import RustCodeGenerator
             generator = RustCodeGenerator(self.ast)
             return generator.generate()
         

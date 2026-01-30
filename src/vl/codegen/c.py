@@ -1,26 +1,27 @@
 """
-VL to Rust Code Generator (Initial Implementation)
+VL to C Code Generator (Initial Implementation)
 
-Generates Rust code from VL AST.
+Generates C code from VL AST.
 This is a basic implementation focusing on core constructs.
 """
 
-from ast_nodes import *
-from typing import List
+from ..ast_nodes import *
+from typing import List, Dict
 
 
-class RustCodeGenerator:
+class CCodeGenerator:
     """
-    Generate Rust code from VL AST
+    Generate C code from VL AST
     
     Usage:
-        generator = RustCodeGenerator(ast)
-        rust_code = generator.generate()
+        generator = CCodeGenerator(ast)
+        c_code = generator.generate()
     """
     
     def __init__(self, ast: Program):
         self.ast = ast
         self.code = []
+        self.includes = set()
         self.indent_level = 0
     
     def _emit(self, line: str = ""):
@@ -30,30 +31,42 @@ class RustCodeGenerator:
         else:
             self.code.append("")
     
-    def _type_to_rust(self, vl_type: Type) -> str:
-        """Convert VL type to Rust type"""
+    def _type_to_c(self, vl_type: Type) -> str:
+        """Convert VL type to C type"""
         type_map = {
-            'int': 'i32',
-            'float': 'f64',
-            'str': '&str',
+            'int': 'int',
+            'float': 'double',
+            'str': 'char*',
             'bool': 'bool',
-            'arr': 'Vec<i32>',  # Generic, needs more context
-            'obj': 'HashMap<String, String>',  # Simplified
-            'any': 'Box<dyn Any>',
-            'void': '()',
+            'arr': 'void*',  # Generic array, needs more context
+            'obj': 'void*',  # Generic object, needs more context
+            'any': 'void*',
+            'void': 'void',
         }
-        return type_map.get(vl_type.name, 'i32')
+        return type_map.get(vl_type.name, 'void*')
     
     def generate(self) -> str:
         """Generate code for entire program"""
         node = self.ast
         
-        # Header comment
-        self._emit("// Generated Rust code from VL")
+        # Header comments
+        self._emit("/* Generated C code from VL */")
         self._emit()
         
-        # Common imports
-        self._emit("use std::collections::HashMap;")
+        # Standard includes
+        self.includes.add("stdbool.h")  # For bool type
+        self.includes.add("stdio.h")    # For I/O
+        self.includes.add("stdlib.h")   # For memory management
+        
+        # Emit includes
+        for include in sorted(self.includes):
+            self._emit(f"#include <{include}>")
+        self._emit()
+        
+        # Forward declarations (if needed)
+        for stmt in node.statements:
+            if isinstance(stmt, FunctionDef):
+                self._emit(self._generate_function_signature(stmt) + ";")
         self._emit()
         
         # Statements
@@ -61,6 +74,19 @@ class RustCodeGenerator:
             self._generate_statement(stmt)
         
         return '\n'.join(self.code)
+    
+    def _generate_function_signature(self, node: FunctionDef) -> str:
+        """Generate C function signature"""
+        # Parameters with types
+        params = []
+        for i, input_type in enumerate(node.input_types):
+            c_type = self._type_to_c(input_type)
+            params.append(f"{c_type} i{i}")
+        
+        params_str = ", ".join(params) if params else "void"
+        return_type = self._type_to_c(node.output_type)
+        
+        return f"{return_type} {node.name}({params_str})"
     
     def _generate_statement(self, node: Statement):
         """Generate code for a statement"""
@@ -77,20 +103,14 @@ class RustCodeGenerator:
         elif isinstance(node, WhileLoop):
             self._generate_while_loop(node)
         else:
-            self._emit(f"// TODO: {type(node).__name__}")
+            # Unsupported statement type - likely needs implementation
+            self._emit(f"/* UNSUPPORTED: {type(node).__name__} not yet implemented for C */")
+            self._emit(f"/* Please report this at: github.com/vibe-language/issues */")
 
     def _generate_function(self, node: FunctionDef):
-        """Generate Rust function with type annotations"""
-        # Parameters with types
-        params = []
-        for i, input_type in enumerate(node.input_types):
-            rust_type = self._type_to_rust(input_type)
-            params.append(f"i{i}: {rust_type}")
-        
-        params_str = ", ".join(params)
-        return_type = self._type_to_rust(node.output_type)
-        
-        self._emit(f"fn {node.name}({params_str}) -> {return_type} {{")
+        """Generate C function definition"""
+        signature = self._generate_function_signature(node)
+        self._emit(f"{signature} {{")
         self.indent_level += 1
         
         # Generate body
@@ -102,30 +122,30 @@ class RustCodeGenerator:
         self._emit()
 
     def _generate_variable_def(self, node: VariableDef):
-        """Generate Rust variable declaration"""
+        """Generate C variable declaration and initialization"""
         val_code = self._generate_expression(node.value)
         
-        # Rust prefers let with type inference, but we can add explicit types
+        # If we have type annotation, use it
         if node.type_annotation:
-            rust_type = self._type_to_rust(node.type_annotation)
-            self._emit(f"let {node.name}: {rust_type} = {val_code};")
+            c_type = self._type_to_c(node.type_annotation)
+            self._emit(f"{c_type} {node.name} = {val_code};")
         else:
-            self._emit(f"let {node.name} = {val_code};")
+            # Auto type - use int as default
+            self._emit(f"int {node.name} = {val_code};")
 
     def _generate_return_stmt(self, node: ReturnStmt):
-        """Generate return statement (or expression without semicolon)"""
+        """Generate return statement"""
         val_code = self._generate_expression(node.value)
-        # In Rust, the last expression without semicolon is returned
-        # But we'll use explicit return for clarity
         self._emit(f"return {val_code};")
 
     def _generate_if_stmt(self, node: IfStmt):
         """Generate if statement"""
         cond_code = self._generate_expression(node.condition)
         
-        self._emit(f"if {cond_code} {{")
+        self._emit(f"if ({cond_code}) {{")
         self.indent_level += 1
         
+        # Handle expression in statement context
         if isinstance(node.true_expr, ReturnStmt):
             self._generate_return_stmt(node.true_expr)
         else:
@@ -146,23 +166,29 @@ class RustCodeGenerator:
         self._emit("}")
 
     def _generate_for_loop(self, node: ForLoop):
-        """Generate for loop using Rust iterator syntax"""
-        iterable = self._generate_expression(node.iterable)
+        """Generate for loop (C-style with range support)"""
+        # For now, assume iterable is a RangeExpr
+        if isinstance(node.iterable, RangeExpr):
+            start = self._generate_expression(node.iterable.start)
+            end = self._generate_expression(node.iterable.end)
+            self._emit(f"for (int {node.variable} = {start}; {node.variable} < {end}; {node.variable}++) {{")
+        else:
+            # Generic iteration (simplified for basic cases)
+            iterable = self._generate_expression(node.iterable)
+            self._emit(f"/* Note: C requires explicit array bounds for iteration */")
+            self._emit(f"/* Assuming array size is known or using sentinel values */")
+            self._emit(f"for (int i = 0; i < 10; i++) {{")
         
-        # Rust uses 'for var in iterator' syntax
-        self._emit(f"for {node.variable} in {iterable} {{")
         self.indent_level += 1
-        
         for stmt in node.body:
             self._generate_statement(stmt)
-        
         self.indent_level -= 1
         self._emit("}")
 
     def _generate_while_loop(self, node: WhileLoop):
         """Generate while loop"""
         condition = self._generate_expression(node.condition)
-        self._emit(f"while {condition} {{")
+        self._emit(f"while ({condition}) {{")
         self.indent_level += 1
         
         for stmt in node.body:
@@ -172,12 +198,12 @@ class RustCodeGenerator:
         self._emit("}")
 
     def _generate_expression(self, node: Expression) -> str:
-        """Generate Rust expression"""
+        """Generate C expression"""
         if isinstance(node, NumberLiteral):
             return str(node.value)
             
         elif isinstance(node, StringLiteral):
-            # Use raw string literals when possible
+            # Escape quotes
             escaped = node.value.replace('"', '\\"')
             return f'"{escaped}"'
             
@@ -197,16 +223,17 @@ class RustCodeGenerator:
                 '==': '==', '!=': '!=',
                 '<': '<', '>': '>', '<=': '<=', '>=': '>=',
                 '+': '+', '-': '-', '*': '*', '/': '/',
-                '%': '%', '**': 'pow'  # Requires .pow() method
+                '%': '%', '**': 'pow'  # Power needs math.h
             }
             
             op = op_map.get(node.operator, node.operator)
             
             # Special case for power
             if op == 'pow':
+                self.includes.add("math.h")
                 left = self._generate_expression(node.operands[0])
                 right = self._generate_expression(node.operands[1])
-                return f"{left}.pow({right})"
+                return f"pow({left}, {right})"
             
             # Unary operators
             if len(node.operands) == 1:
@@ -225,21 +252,13 @@ class RustCodeGenerator:
             return f"{callee}({', '.join(args)})"
             
         elif isinstance(node, ArrayLiteral):
+            # C doesn't have array literals like this, needs initialization
             elements = [self._generate_expression(e) for e in node.elements]
-            return f"vec![{', '.join(elements)}]"
-            
-        elif isinstance(node, ObjectLiteral):
-            # Generate HashMap initialization
-            pairs = []
-            for k, v in node.pairs:
-                v_expr = self._generate_expression(v)
-                pairs.append(f'map.insert("{k}".to_string(), {v_expr});')
-            
-            # This is a bit verbose, but shows the pattern
-            return f"{{ let mut map = HashMap::new(); {''.join(pairs)} map }}"
+            return f"{{{', '.join(elements)}}}"
             
         elif isinstance(node, MemberAccess):
             obj = self._generate_expression(node.object)
+            # Use -> for pointers, . for structs (default to .)
             return f"{obj}.{node.property}"
             
         elif isinstance(node, IndexAccess):
@@ -248,15 +267,15 @@ class RustCodeGenerator:
             return f"{obj}[{index}]"
             
         elif isinstance(node, RangeExpr):
+            # Ranges don't exist as expressions in C, return comment
             start = self._generate_expression(node.start)
             end = self._generate_expression(node.end)
-            # Rust uses start..end for ranges (exclusive end)
-            return f"({start}..{end})"
+            return f"/* range({start}, {end}) */"
         
-        return "()"
+        return "NULL"
 
 
-def generate_rust(ast: Program) -> str:
-    """Main entry point for Rust code generation"""
-    generator = RustCodeGenerator(ast)
+def generate_c(ast: Program) -> str:
+    """Main entry point for C code generation"""
+    generator = CCodeGenerator(ast)
     return generator.generate()

@@ -18,9 +18,9 @@ Key Design Decisions:
 """
 
 from typing import List, Optional, Union
-from lexer import Token, TokenType, tokenize
-from ast_nodes import *
-from errors import ParseError, SourceLocation
+from .lexer import Token, TokenType, tokenize
+from .ast_nodes import *
+from .errors import ParseError, SourceLocation
 
 
 class Parser:
@@ -346,10 +346,16 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.PIPE)
         
-        # Parse inputs: i:type,type
+        # Parse inputs: i:type,type or i: (empty)
         self.expect(TokenType.INPUT)
         self.expect(TokenType.COLON)
-        input_types = self.parse_type_list()
+        
+        # Check if input list is empty (next token is PIPE)
+        if self.match(TokenType.PIPE):
+            input_types = []
+        else:
+            input_types = self.parse_type_list()
+        
         self.expect(TokenType.PIPE)
         
         # Parse output: o:type
@@ -697,7 +703,8 @@ class Parser:
     def parse_map_op(self) -> MapOp:
         token = self.expect(TokenType.MAP)
         self.expect(TokenType.COLON)
-        # TODO: Better map parsing for fields vs expression
+        # Note: Currently only supports expression-based mapping
+        # Future enhancement: Support field extraction syntax like map:field1,field2
         # For now, assume expression
         expr = self.parse_expression()
         return MapOp(line=token.line, column=token.column, fields=None, expression=expr)
@@ -814,7 +821,8 @@ class Parser:
             elif self.match(TokenType.MAP):
                 self.advance()
                 self.expect(TokenType.COLON)
-                # TODO support map:field1,field2 syntax
+                # Note: Field extraction syntax (map:field1,field2) not yet implemented
+                # Current support: expression-based transformation only
                 transformation = self.parse_expression()
                 operations.append(MapOp(
                     line=self.current_token.line,

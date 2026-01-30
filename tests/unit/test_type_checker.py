@@ -2,7 +2,15 @@
 Type Checker Test Script
 """
 
-from compiler import Compiler
+import sys
+from pathlib import Path
+
+# Add parent directory to sys.path for imports
+parent_dir = Path(__file__).parent.parent.parent / 'src'
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from vl.compiler import Compiler
 
 # Test 1: Correct type annotation
 print("Test 1: v:x:int=42")

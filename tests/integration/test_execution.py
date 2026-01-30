@@ -3,7 +3,15 @@ Test that generated Python code actually executes correctly
 This validates we're 100% operational as a Python transpiler
 """
 
-from compiler import Compiler
+import sys
+from pathlib import Path
+
+# Add parent directory to sys.path for imports
+parent_dir = Path(__file__).parent.parent.parent / 'src'
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from vl.compiler import Compiler
 
 def test_case(name, vl_code, test_func):
     """Run a test case: compile VL -> execute Python -> verify result"""

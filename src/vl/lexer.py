@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 import re
 
-from errors import LexerError, SourceLocation
+from .errors import LexerError, SourceLocation
 
 
 class TokenType(Enum):

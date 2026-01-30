@@ -3,8 +3,9 @@ VL to Python Code Generator
 Converts VL AST to Python source code
 """
 
-from ast_nodes import *
+from ..ast_nodes import *
 from typing import List, Any
+from .. import config as vl_config
 
 
 class PythonCodeGenerator:
@@ -131,7 +132,9 @@ class PythonCodeGenerator:
         elif isinstance(node, UIComponent):
             self._generate_ui_component(node)
         else:
-            self._emit(f"# TODO: Unsupported statement type: {type(node).__name__}")
+            # Unsupported statement type - likely needs implementation
+            self._emit(f"# UNSUPPORTED: {type(node).__name__} not yet implemented")
+            self._emit(f"# Please report this at: github.com/vibe-language/issues")
     
     def _generate_function(self, node: FunctionDef):
         """Generate Python function definition"""
@@ -463,7 +466,8 @@ class PythonCodeGenerator:
             return self._generate_api_call_expr(node)
         
         else:
-            return f"None # TODO: {type(node).__name__}"
+            # Unsupported expression type - likely needs implementation
+            return f"None  # UNSUPPORTED: {type(node).__name__} - please report this"
     
     def _generate_operation(self, node: Operation) -> str:
         """Generate Python operation with optimization for boolean chains"""
@@ -478,13 +482,14 @@ class PythonCodeGenerator:
         
         # OPTIMIZATION: Convert chained && to all() and || to any()
         # This is more Pythonic and saves tokens in generated code
-        if node.operator in ('&&', '||') and len(node.operands) == 2:
+        # Controlled by vl_config.BOOLEAN_CHAIN_MIN_LENGTH
+        if vl_config.should_optimize_booleans('python') and node.operator in ('&&', '||') and len(node.operands) == 2:
             # Collect all operands in the chain
             conditions = []
             self._collect_boolean_chain(node, node.operator, conditions)
             
-            # If we have 3+ conditions, use all()/any()
-            if len(conditions) >= 3:
+            # If we have enough conditions, use all()/any()
+            if len(conditions) >= vl_config.BOOLEAN_CHAIN_MIN_LENGTH:
                 condition_strs = [self._generate_expression(cond) for cond in conditions]
                 if node.operator == '&&':
                     return f"all([{', '.join(condition_strs)}])"
@@ -526,8 +531,8 @@ class PythonCodeGenerator:
     def _process_string_template(self, template: str) -> str:
         """Process string template with complex VL expressions in ${...}"""
         import re
-        from lexer import Lexer
-        from parser import Parser
+        from ..lexer import Lexer
+        from ..parser import Parser
         
         result_parts = []
         last_end = 0

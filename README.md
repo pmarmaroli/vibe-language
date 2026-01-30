@@ -14,7 +14,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vibe-language.git
+git clone https://github.com/pmarmaroli/vibe-language.git
 cd vibe-language
 ```
 
@@ -22,7 +22,7 @@ cd vibe-language
 
 ```bash
 # Run a VL program (Python target, default)
-.\vl.bat interpreter/examples/hello.vl
+.\vl.bat examples/basic/hello.vl
 
 # Compile to different targets
 .\vl.bat program.vl --target python -o output.py      # Python (default)
@@ -32,12 +32,36 @@ cd vibe-language
 .\vl.bat program.vl --target rust -o output.rs        # Rust
 
 # View generated code with debug output
-.\vl.bat interpreter/examples/data.vl --target js --debug
+.\vl.bat examples/data/csv_processor.vl --target js --debug
 .\vl.bat program.vl --target ts --debug
 
 # Multi-target compilation example
 .\vl.bat app.vl --target python -o app.py && python app.py
 .\vl.bat app.vl --target javascript -o app.js && node app.js
+```
+
+### Project Structure
+
+```
+vibe-language/
+├── src/vl/              # Source code (Python package)
+│   ├── codegen/         # Code generators for all targets
+│   ├── cli.py           # Command-line interface
+│   ├── compiler.py      # Main compiler
+│   ├── lexer.py         # Tokenizer
+│   ├── parser.py        # AST generator
+│   ├── type_checker.py  # Type validation
+│   └── config.py        # Configuration settings
+├── tests/               # All tests organized by type
+│   ├── unit/            # Unit tests
+│   ├── integration/     # Integration tests
+│   ├── codegen/         # Code generation tests
+│   └── benchmarks/      # Performance benchmarks
+├── examples/            # VL example programs
+│   ├── basic/           # Hello world, functions
+│   ├── data/            # Data pipelines, APIs
+│   └── ui/              # UI components
+└── docs/                # Documentation
 ```
 
 ### VS Code Extension
@@ -53,11 +77,16 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
 **Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
 
 **Multi-Target Architecture:**
-- ✅ **Python**: 100% operational (51/51 tests passing) - Production-ready with `all()`/`any()` optimization
+- ✅ **Python**: 100% operational (51/51 tests passing) - Production-ready with configurable `all()`/`any()` optimization
 - ✅ **JavaScript**: 100% operational (14/14 tests passing) - ES6+ with native operators
-- 🚧 **TypeScript**: Basic implementation complete - Type annotations + ES6+
-- 🚧 **C**: Basic implementation complete - ANSI C with standard library
-- 🚧 **Rust**: Basic implementation complete - Safe Rust with std library
+- ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
+- ✅ **C**: Basic implementation complete - ANSI C with standard library
+- ✅ **Rust**: Basic implementation complete - Safe Rust with std library
+
+**Configuration System:** Centralized settings in `vl_config.py` control optimization behavior:
+- `BOOLEAN_CHAIN_MIN_LENGTH = 3` - Minimum chain length for all()/any() optimization
+- `OPTIMIZE_BOOLEAN_CHAINS = True` - Enable/disable boolean optimizations
+- Target-specific settings for file extensions, type hints, optimization flags
 
 **Universal IR Philosophy:** Like LLVM, WebAssembly, or Java bytecode, VL serves as a single intermediate representation that compiles to optimized native code for each platform. Each codegen backend optimizes for its target's idioms:
 - **Python**: Uses `all()`/`any()` for boolean chains (Pythonic + token efficient)
@@ -67,13 +96,12 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
 **Language Robustness: 100% (15/15 complex scenarios pass)**  
 **Example Programs: 100% (7/7 compile successfully)**  
 **Real-World Testing: 100% (15/15 scenarios compile)**  
-**Test Coverage: 100% (51/51 tests passing)**
-  - Python: 37/37 tests
-  - JavaScript: 14/14 tests
+**Test Coverage: 100% (76/76 tests passing)**  
+  - Comprehensive codegen: 65/65 tests (all 5 targets × core constructs)
+  - Multi-target boolean: 11/11 tests
+  - Configuration system: 4/4 tests verified
 **Benchmark Suite: 41.3% overall efficiency (13 focused test cases)**  
-
-VL handles production-level patterns including nested loops, complex string interpolation, conditional returns, API chaining, UI components, deep expression nesting, recursion with @ syntax, data pipelines (filter/map/groupBy/agg/sort), and cross-platform compilation.
-
+**CI/CD:** GitHub Actions testing on Python 3.9-3.11 across Ubuntu/Windows/macOS
 ### Where VL Excels
 
 **🎯 Multi-Stage Data Pipelines: 84.8% token savings**

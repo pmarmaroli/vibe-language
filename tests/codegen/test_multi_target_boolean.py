@@ -10,12 +10,19 @@ Verifies that:
 """
 
 import sys
+import io
 from pathlib import Path
 
-# Add interpreter directory to path
-sys.path.insert(0, str(Path(__file__).parent / "interpreter"))
+# Fix Unicode output on Windows
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-from compiler import Compiler, TargetLanguage
+# Add interpreter directory to path
+src_path = Path(__file__).parent.parent.parent / "src"
+sys.path.insert(0, str(src_path))
+
+from vl.compiler import Compiler, TargetLanguage
 
 
 def test_boolean_optimization():

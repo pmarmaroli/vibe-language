@@ -3,7 +3,20 @@ Final Validation: 100% Operational Python Transpiler Test
 Tests ALL fixed issues and edge cases
 """
 
-from compiler import Compiler
+import sys
+from pathlib import Path
+import io
+
+# Fix Windows Unicode encoding
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# Add parent directory to sys.path for imports
+parent_dir = Path(__file__).parent.parent.parent / 'src'
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from vl.compiler import Compiler
 
 def test_and_execute(name, vl_code, test_func):
     """Test compilation and execution"""

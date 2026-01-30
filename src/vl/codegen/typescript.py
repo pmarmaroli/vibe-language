@@ -5,7 +5,7 @@ Generates TypeScript code from VL AST.
 Based on JavaScript codegen with TypeScript-specific type annotations.
 """
 
-from ast_nodes import *
+from ..ast_nodes import *
 from typing import List, Any
 
 
@@ -59,7 +59,7 @@ class TSCodeGenerator:
         # Dependencies (ES6 imports)
         if node.dependencies:
             for dep in node.dependencies.dependencies:
-                # TODO: Parse import syntax more intelligently
+                # Simple import generation - future: parse import aliases and specific exports
                 self._emit(f"import * as {dep.replace('/', '_')} from '{dep}';")
             self._emit()
         
@@ -101,7 +101,9 @@ class TSCodeGenerator:
         elif isinstance(node, UIComponent):
             self._generate_ui_component(node)
         else:
-            self._emit(f"// TODO: {type(node).__name__}")
+            # Unsupported statement type - likely needs implementation
+            self._emit(f"// UNSUPPORTED: {type(node).__name__} not yet implemented for TypeScript")
+            self._emit(f"// Please report this at: github.com/vibe-language/issues")
 
     def _generate_function(self, node: FunctionDef):
         """Generate TypeScript function with type annotations"""

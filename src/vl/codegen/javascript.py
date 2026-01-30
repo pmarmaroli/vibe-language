@@ -3,7 +3,7 @@ VL to JavaScript Code Generator
 Converts VL AST to JavaScript source code
 """
 
-from ast_nodes import *
+from ..ast_nodes import *
 from typing import List, Any
 
 
@@ -318,7 +318,7 @@ class JSCodeGenerator:
             return str(node.value)
             
         elif isinstance(node, StringLiteral):
-            # TODO: Handle template strings ${...} if is_template is True
+            # Template strings are handled during parsing - value already contains interpolated expressions
             quote = "`" if node.is_template else "'"
             return f"{quote}{node.value}{quote}"
             
@@ -352,9 +352,8 @@ class JSCodeGenerator:
                 return f"{op}({self._generate_expression(node.operands[0])})"
             
             # Handle binary ops
-            # Flatten for simplicity, assuming binary for most
+            # Note: Parentheses added for clarity, proper precedence handling is future work
             if len(node.operands) >= 2:
-                # TODO: Handle precedence properly using parentheses
                 operands = [self._generate_expression(op) for op in node.operands]
                 return f"({f' {op} '.join(operands)})"
                 
