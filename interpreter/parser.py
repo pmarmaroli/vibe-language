@@ -2,96 +2,134 @@
 VL Parser
 
 Converts tokens from the lexer into an Abstract Syntax Tree (AST).
-Uses recursive descent parsing.
+Uses recursive descent parsing with operator precedence.
+
+Parser Structure:
+- parse() -> Program
+- parse_statement() -> Statement
+- parse_expression() -> Expression
+  - parse_logical -> parse_comparison -> parse_term -> parse_factor
+  - parse_unary -> parse_postfix -> parse_primary
+
+Key Design Decisions:
+- Infix operators (+, -, *, /, ==, etc.) parsed with precedence climbing
+- Pipeline operations (|filter:|map:) parsed as postfix operations
+- Function expressions allowed in object literals for method definitions
 """
 
 from typing import List, Optional, Union
 from lexer import Token, TokenType, tokenize
 from ast_nodes import *
-
-
-class ParseError(Exception):
-    """Parser error with location information"""
-    def __init__(self, message: str, token: Token):
-        self.message = message
-        self.token = token
-        super().__init__(f"{message} at {token.line}:{token.column}")
+from errors import ParseError, SourceLocation
 
 
 class Parser:
-    """VL Parser - converts tokens to AST"""
+    """
+    VL Parser - converts tokens to AST
     
-    def __init__(self, tokens: List[Token]):
+    Uses recursive descent with operator precedence for expression parsing.
+    """
+    
+    # Token types that represent pipeline operations
+    PIPELINE_OPS = frozenset([TokenType.FILTER, TokenType.MAP, TokenType.PARSE])
+    
+    # Token types that can start a statement
+    STATEMENT_STARTERS = frozenset([
+        TokenType.FN, TokenType.VAR, TokenType.RET, TokenType.IF,
+        TokenType.FOR, TokenType.WHILE, TokenType.API, TokenType.ASYNC,
+        TokenType.UI, TokenType.DATA, TokenType.FILE, TokenType.AT,
+        TokenType.IDENTIFIER
+    ])
+    
+    def __init__(self, tokens: List[Token], source: str = ""):
         self.tokens = tokens
+        self.source = source
         self.pos = 0
         self.current_token = self.tokens[0] if tokens else None
-        self.parsing_pipeline_operation = False  # Flag to prevent nested pipeline parsing
+        # Flag to prevent nested pipeline parsing
+        self._in_pipeline = False
     
-    def error(self, message: str) -> ParseError:
-        """Create parse error with current token location"""
-        return ParseError(message, self.current_token)
+    # ===== Error Handling =====
+    
+    def error(self, message: str, hints: List[str] = None) -> ParseError:
+        """Create parse error with current token location and context"""
+        if self.current_token:
+            loc = SourceLocation(self.current_token.line, self.current_token.column)
+            source_line = self._get_source_line(self.current_token.line)
+        else:
+            loc = SourceLocation(1, 1)
+            source_line = ""
+        return ParseError(message, location=loc, source_line=source_line, hints=hints or [])
+    
+    def _get_source_line(self, line_num: int) -> str:
+        """Extract a specific line from source"""
+        if not self.source:
+            return ""
+        lines = self.source.split('\n')
+        return lines[line_num - 1] if 0 < line_num <= len(lines) else ""
+    
+    # ===== Token Navigation =====
+    
+    # ===== Token Navigation =====
     
     def peek(self, offset: int = 0) -> Optional[Token]:
         """Look ahead at token without consuming"""
         pos = self.pos + offset
-        if pos < len(self.tokens):
-            return self.tokens[pos]
-        return None
+        return self.tokens[pos] if pos < len(self.tokens) else None
     
     def advance(self) -> Token:
-        """Move to next token"""
+        """Move to next token, returning the current one"""
         token = self.current_token
         self.pos += 1
-        if self.pos < len(self.tokens):
-            self.current_token = self.tokens[self.pos]
-        else:
-            self.current_token = None
+        self.current_token = self.tokens[self.pos] if self.pos < len(self.tokens) else None
         return token
-    
-    def expect(self, token_type: TokenType) -> Token:
-        """Consume token of expected type or raise error with helpful message"""
-        if self.current_token and self.current_token.type == token_type:
-            return self.advance()
-        
-        # Build helpful error message with context
-        got = self.current_token.type.name if self.current_token else 'EOF'
-        line = self.current_token.line if self.current_token else '?'
-        col = self.current_token.column if self.current_token else '?'
-        
-        error_msg = f"Expected {token_type.name}, got {got}"
-        
-        # Add context-specific suggestions
-        suggestions = []
-        if token_type == TokenType.PIPE:
-            suggestions.append("VL uses | to separate statements and clauses")
-            suggestions.append("Example: fn:name|i:int|o:int|ret:value")
-        elif token_type == TokenType.COLON:
-            suggestions.append("VL uses : after keywords")
-            suggestions.append("Example: fn:name, v:var, ret:value")
-        elif token_type == TokenType.IDENTIFIER:
-            suggestions.append("Expected a variable or function name here")
-            if got in ["INPUT", "OUTPUT", "DATA", "FILTER", "MAP"]:
-                suggestions.append(f"'{got}' is a reserved keyword, try a different name")
-        
-        if suggestions:
-            error_msg += f"\nHint: {suggestions[0]}"
-            if len(suggestions) > 1:
-                error_msg += f"\n      {suggestions[1]}"
-        
-        raise self.error(error_msg)
     
     def match(self, *token_types: TokenType) -> bool:
         """Check if current token matches any of the given types"""
-        if not self.current_token:
-            return False
-        return self.current_token.type in token_types
+        return self.current_token and self.current_token.type in token_types
+    
+    def expect(self, token_type: TokenType) -> Token:
+        """Consume token of expected type or raise error with helpful message"""
+        if self.match(token_type):
+            return self.advance()
+        
+        got = self.current_token.type.name if self.current_token else 'EOF'
+        hints = self._get_expect_hints(token_type, got)
+        raise self.error(f"Expected {token_type.name}, got {got}", hints)
+    
+    def _get_expect_hints(self, expected: TokenType, got: str) -> List[str]:
+        """Generate context-specific hints for expect() errors"""
+        hints = []
+        hint_map = {
+            TokenType.PIPE: [
+                "VL uses | to separate statements and clauses",
+                "Example: fn:name|i:int|o:int|ret:value"
+            ],
+            TokenType.COLON: [
+                "VL uses : after keywords",
+                "Example: fn:name, v:var, ret:value"
+            ],
+            TokenType.IDENTIFIER: [
+                "Expected a variable or function name"
+            ],
+            TokenType.RPAREN: ["Check for matching parentheses"],
+            TokenType.RBRACE: ["Check for matching braces"],
+            TokenType.RBRACKET: ["Check for matching brackets"],
+        }
+        hints = hint_map.get(expected, [])
+        if expected == TokenType.IDENTIFIER and got in ("INPUT", "OUTPUT", "DATA", "FILTER", "MAP"):
+            hints.append(f"'{got}' is a reserved keyword, try a different name")
+        return hints
     
     def skip_newlines(self):
         """Skip newline tokens"""
-        while self.current_token and self.current_token.type == TokenType.NEWLINE:
+        while self.match(TokenType.NEWLINE):
             self.advance()
     
-    # Main parsing methods
+    def _is_pipeline_lookahead(self) -> bool:
+        """Check if current PIPE token is followed by a pipeline operation"""
+        next_tok = self.peek(1)
+        return next_tok and next_tok.type in self.PIPELINE_OPS
     
     def parse(self) -> Program:
         """Parse entire VL program"""
@@ -266,67 +304,9 @@ class Parser:
     
     def parse_function_def(self) -> FunctionDef:
         """Parse: fn:name|i:type,type|o:type|body"""
-        token = self.expect(TokenType.FN)
-        self.expect(TokenType.COLON)
-        
-        name = self.expect(TokenType.IDENTIFIER).value
-        self.expect(TokenType.PIPE)
-        
-        # Parse inputs
-        self.expect(TokenType.INPUT)
-        self.expect(TokenType.COLON)
-        input_types = self.parse_type_list()
-        self.expect(TokenType.PIPE)
-        
-        # Parse output
-        self.expect(TokenType.OUTPUT)
-        self.expect(TokenType.COLON)
-        output_type = self.parse_type()
-        self.expect(TokenType.PIPE)
-        
-        # Parse body (statements separated by | or newlines)
-        body = []
-        while not self.match(TokenType.EOF, TokenType.EXPORT):
-            if self.match(TokenType.NEWLINE):
-                self.skip_newlines()
-                continue
-                
-            # If we hit another core keyword that shouldn't be inside a function without context?
-            # Actually, functions can contain any statement.
-            # But we need to know when the function ends.
-            # VL relies on indentation? No, it's not whitespace sensitive in that way.
-            # It relies on specific delimiters.
-            # BUT the prompt example shows multi-line indentation.
-            # If VL is truly "universal" and uses `|`, maybe indentation is syntactic sugar?
-            # For now, let's just consume until we hit something that clearly ends it.
-            # But wait, `fn` doesn't have an `end` token.
-            # The previous logic broke on NEWLINE.
-            # If we allow NEWLINE, what stops it?
-            # `EXPORT` stops it. `EOF` stops it.
-            # Another `FN`?
-            if self.match(TokenType.FN):
-                 break
-            
-            # Additional safety: If we see META or DEPS, break
-            if self.match(TokenType.META, TokenType.DEPS):
-                break
-                
-            stmt = self.parse_statement()
-            if stmt:
-                body.append(stmt)
-            
-            # Only consume PIPE if it's a statement separator, not a pipeline operation  
-            if self.match(TokenType.PIPE):
-                # Check if this is a pipeline operation (|filter:, |map:, etc.)
-                next_tok = self.peek()
-                if next_tok and next_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
-                    # This PIPE is part of a pipeline expression, don't consume it here
-                    # It should have been consumed by the expression parser
-                    pass
-                else:
-                    # This is a statement separator, consume it
-                    self.advance()
-
+        name, input_types, output_type, body, token = self._parse_function_common(
+            stop_tokens=[TokenType.EOF, TokenType.EXPORT, TokenType.FN, TokenType.META, TokenType.DEPS]
+        )
         
         return FunctionDef(
             line=token.line, column=token.column,
@@ -338,42 +318,9 @@ class Parser:
     
     def parse_function_expr(self) -> FunctionExpr:
         """Parse: fn:name|i:type,type|o:type|body - Function as expression inside objects"""
-        token = self.expect(TokenType.FN)
-        self.expect(TokenType.COLON)
-        
-        name = self.expect(TokenType.IDENTIFIER).value
-        self.expect(TokenType.PIPE)
-        
-        # Parse inputs
-        self.expect(TokenType.INPUT)
-        self.expect(TokenType.COLON)
-        input_types = self.parse_type_list()
-        self.expect(TokenType.PIPE)
-        
-        # Parse output
-        self.expect(TokenType.OUTPUT)
-        self.expect(TokenType.COLON)
-        output_type = self.parse_type()
-        self.expect(TokenType.PIPE)
-        
-        # Parse body - for function expressions, stop at } or , (object delimiters)
-        body = []
-        while not self.match(TokenType.EOF, TokenType.RBRACE, TokenType.COMMA):
-            if self.match(TokenType.NEWLINE):
-                self.skip_newlines()
-                continue
-            
-            stmt = self.parse_statement()
-            if stmt:
-                body.append(stmt)
-            
-            # Consume pipe separators within the function body
-            if self.match(TokenType.PIPE):
-                next_tok = self.peek()
-                if next_tok and next_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
-                    pass  # Pipeline operation, don't consume
-                else:
-                    self.advance()
+        name, input_types, output_type, body, token = self._parse_function_common(
+            stop_tokens=[TokenType.EOF, TokenType.RBRACE, TokenType.COMMA]
+        )
         
         return FunctionExpr(
             line=token.line, column=token.column,
@@ -382,6 +329,58 @@ class Parser:
             output_type=output_type,
             body=body
         )
+    
+    def _parse_function_common(self, stop_tokens: List[TokenType]):
+        """
+        Parse common function structure: fn:name|i:types|o:type|body
+        
+        Args:
+            stop_tokens: Token types that signal end of function body
+        
+        Returns:
+            Tuple of (name, input_types, output_type, body, start_token)
+        """
+        token = self.expect(TokenType.FN)
+        self.expect(TokenType.COLON)
+        
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.PIPE)
+        
+        # Parse inputs: i:type,type
+        self.expect(TokenType.INPUT)
+        self.expect(TokenType.COLON)
+        input_types = self.parse_type_list()
+        self.expect(TokenType.PIPE)
+        
+        # Parse output: o:type
+        self.expect(TokenType.OUTPUT)
+        self.expect(TokenType.COLON)
+        output_type = self.parse_type()
+        self.expect(TokenType.PIPE)
+        
+        # Parse body - statements separated by | or newlines
+        body = self._parse_function_body(stop_tokens)
+        
+        return name, input_types, output_type, body, token
+    
+    def _parse_function_body(self, stop_tokens: List[TokenType]) -> List[Statement]:
+        """Parse function body until a stop token is encountered"""
+        body = []
+        
+        while self.current_token and self.current_token.type not in stop_tokens:
+            if self.match(TokenType.NEWLINE):
+                self.skip_newlines()
+                continue
+            
+            stmt = self.parse_statement()
+            if stmt:
+                body.append(stmt)
+            
+            # Consume pipe separators (but not pipeline operations)
+            if self.match(TokenType.PIPE) and not self._is_pipeline_lookahead():
+                self.advance()
+        
+        return body
     
     def parse_type_list(self) -> List[Type]:
         """Parse comma-separated types"""
@@ -655,9 +654,7 @@ class Parser:
             operations=operations
         )
     
-    def parse_api_call_expr(self) -> APICall:
-        """Parse API call as expression (same as statement)"""
-        return self.parse_api_call()
+    # Note: parse_api_call serves as both statement and expression parser
     
     def parse_filter_op(self) -> FilterOp:
         token = self.expect(TokenType.FILTER)
@@ -829,9 +826,7 @@ class Parser:
             operations=operations
         )
     
-    def parse_data_pipeline_expr(self) -> DataPipeline:
-        """Parse data pipeline as expression (same as statement)"""
-        return self.parse_data_pipeline()
+    # Note: parse_data_pipeline serves as both statement and expression parser
     
     def parse_file_operation(self) -> FileOperation:
         """Parse: file:operation,path[,args]"""
@@ -951,60 +946,61 @@ class Parser:
             
             # Function call: func(args)
             elif self.match(TokenType.LPAREN):
-                self.advance()
-                args = []
-                while not self.match(TokenType.RPAREN):
-                    args.append(self.parse_expression())
-                    if self.match(TokenType.COMMA):
-                        self.advance()
-                self.expect(TokenType.RPAREN)
-                
-                expr = FunctionCall(
-                    line=expr.line,
-                    column=expr.column,
-                    callee=expr,
-                    arguments=args
-                )
+                expr = self._parse_call_args(expr)
             
             # Pipeline operations: expr|filter:...|map:...  
-            elif self.match(TokenType.PIPE) and not self.parsing_pipeline_operation:
-                peek_tok = self.peek(1)  # Look ahead to next token
-                if peek_tok and peek_tok.type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE):
-                    # Parse pipeline operations starting from current expression
-                    operations = []
-                    max_ops = 100  # Safety limit
-                    self.parsing_pipeline_operation = True  # Set flag
-                    try:
-                        while (self.match(TokenType.PIPE) and self.peek(1) and 
-                               self.peek(1).type in (TokenType.FILTER, TokenType.MAP, TokenType.PARSE) and
-                               len(operations) < max_ops):
-                            self.advance()  # consume PIPE, now at operation token
-                            
-                            # Now current token is FILTER, MAP, or PARSE
-                            if self.current_token.type == TokenType.FILTER:
-                                operations.append(self.parse_filter_op())
-                            elif self.current_token.type == TokenType.MAP:
-                                operations.append(self.parse_map_op())
-                            elif self.current_token.type == TokenType.PARSE:
-                                operations.append(self.parse_parse_op())
-                        
-                        # Create a DataPipeline with the expression as source
-                        expr = DataPipeline(
-                            line=expr.line,
-                            column=expr.column,
-                            source=expr,
-                            operations=operations
-                        )
-                    finally:
-                        self.parsing_pipeline_operation = False  # Clear flag
+            elif self.match(TokenType.PIPE) and not self._in_pipeline:
+                if self._is_pipeline_lookahead():
+                    expr = self._parse_pipeline_chain(expr)
                 else:
-                    # PIPE but not a pipeline operation, stop parsing postfix
-                    break
+                    break  # PIPE but not a pipeline operation
             
             else:
                 break
                 
         return expr
+    
+    def _parse_call_args(self, callee: Expression) -> FunctionCall:
+        """Parse function call arguments: (arg1, arg2, ...)"""
+        self.advance()  # consume LPAREN
+        args = []
+        while not self.match(TokenType.RPAREN):
+            args.append(self.parse_expression())
+            if self.match(TokenType.COMMA):
+                self.advance()
+        self.expect(TokenType.RPAREN)
+        return FunctionCall(
+            line=callee.line,
+            column=callee.column,
+            callee=callee,
+            arguments=args
+        )
+    
+    def _parse_pipeline_chain(self, source: Expression) -> DataPipeline:
+        """Parse a chain of pipeline operations: |filter:...|map:..."""
+        operations = []
+        self._in_pipeline = True
+        
+        try:
+            while self.match(TokenType.PIPE) and self._is_pipeline_lookahead():
+                self.advance()  # consume PIPE
+                
+                # Parse the operation (now current token is FILTER, MAP, or PARSE)
+                if self.match(TokenType.FILTER):
+                    operations.append(self.parse_filter_op())
+                elif self.match(TokenType.MAP):
+                    operations.append(self.parse_map_op())
+                elif self.match(TokenType.PARSE):
+                    operations.append(self.parse_parse_op())
+        finally:
+            self._in_pipeline = False
+        
+        return DataPipeline(
+            line=source.line,
+            column=source.column,
+            source=source,
+            operations=operations
+        )
     
     def parse_primary(self) -> Expression:
         """Parse primary expressions (literals, identifiers, etc.)"""
@@ -1081,11 +1077,11 @@ class Parser:
         
         # Data pipeline expression (data:source|filter:...)
         if self.match(TokenType.DATA):
-            return self.parse_data_pipeline_expr()
+            return self.parse_data_pipeline()
         
         # API call as expression (api:GET,url)
         if self.match(TokenType.API, TokenType.ASYNC):
-            return self.parse_api_call_expr()
+            return self.parse_api_call()
         
         # Identifier (variable or function name)
         if self.match(TokenType.IDENTIFIER):

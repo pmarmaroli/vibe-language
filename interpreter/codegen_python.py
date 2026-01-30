@@ -217,10 +217,36 @@ class PythonCodeGenerator:
         
         for op in node.operations:
             if isinstance(op, FilterOp):
-                 self._emit(f"data = [x for x in data if {self._generate_expression(op.condition)}]")
+                self._emit(f"data = [x for x in data if {self._generate_expression(op.condition)}]")
             elif isinstance(op, MapOp):
-                 if op.expression:
-                     self._emit(f"data = [{self._generate_expression(op.expression)} for x in data]")
+                if op.expression:
+                    self._emit(f"data = [{self._generate_expression(op.expression)} for x in data]")
+            elif isinstance(op, GroupByOp):
+                self._emit(f"# Group by {op.field}")
+                self._emit(f"from collections import defaultdict")
+                self._emit(f"_grouped = defaultdict(list)")
+                self._emit(f"for x in data:")
+                self._emit(f"    _grouped[x.get('{op.field}', x['{op.field}'] if isinstance(x, dict) else getattr(x, '{op.field}', None))].append(x)")
+                self._emit(f"data = dict(_grouped)")
+            elif isinstance(op, AggregateOp):
+                self._emit(f"# Aggregate: {op.function}")
+                if op.function == 'count':
+                    self._emit(f"data = {{k: len(v) for k, v in data.items()}}")
+                elif op.function == 'sum':
+                    field = op.field or 'value'
+                    self._emit(f"data = {{k: sum(x.get('{field}', x['{field}'] if isinstance(x, dict) else getattr(x, '{field}', 0)) for x in v) for k, v in data.items()}}")
+                elif op.function == 'avg':
+                    field = op.field or 'value'
+                    self._emit(f"data = {{k: sum(x.get('{field}', x['{field}'] if isinstance(x, dict) else getattr(x, '{field}', 0)) for x in v) / len(v) if v else 0 for k, v in data.items()}}")
+                elif op.function == 'min':
+                    field = op.field or 'value'
+                    self._emit(f"data = {{k: min(x.get('{field}', x['{field}'] if isinstance(x, dict) else getattr(x, '{field}', 0)) for x in v) for k, v in data.items()}}")
+                elif op.function == 'max':
+                    field = op.field or 'value'
+                    self._emit(f"data = {{k: max(x.get('{field}', x['{field}'] if isinstance(x, dict) else getattr(x, '{field}', 0)) for x in v) for k, v in data.items()}}")
+            elif isinstance(op, SortOp):
+                reverse = "True" if op.order == 'desc' else "False"
+                self._emit(f"data = sorted(data, key=lambda x: x.get('{op.field}', x['{op.field}'] if isinstance(x, dict) else getattr(x, '{op.field}', 0)), reverse={reverse})")
     
     def _generate_data_pipeline_expr(self, node: DataPipeline) -> str:
         """Generate data pipeline as an expression (for return statements)"""
@@ -231,6 +257,16 @@ class PythonCodeGenerator:
         # Start with the source
         result = source_expr
         
+        # Check if we have complex operations that need statement form
+        has_complex_ops = any(isinstance(op, (GroupByOp, AggregateOp)) for op in node.operations)
+        
+        if has_complex_ops:
+            # For complex operations, generate as a multiline expression with inline helper
+            # This is a simplified version - full support would require statement context
+            self._emit("# Complex pipeline - using itertools/functools")
+            self._emit("from itertools import groupby")
+            self._emit("from functools import reduce")
+        
         # Apply each operation in sequence
         for op in node.operations:
             if isinstance(op, FilterOp):
@@ -240,6 +276,15 @@ class PythonCodeGenerator:
                 if op.expression:
                     expr = self._generate_expression(op.expression)
                     result = f"[({expr}) for x in {result}]"
+            elif isinstance(op, GroupByOp):
+                # Use dict comprehension with setdefault pattern
+                result = f"{{k: list(g) for k, g in groupby(sorted({result}, key=lambda x: x.get('{op.field}', '')), key=lambda x: x.get('{op.field}', ''))}}"
+            elif isinstance(op, AggregateOp):
+                if op.function == 'count':
+                    result = f"{{k: len(v) for k, v in {result}.items()}}"
+                elif op.function == 'sum':
+                    field = op.field or 'value'
+                    result = f"{{k: sum(x.get('{field}', 0) for x in v) for k, v in {result}.items()}}"
         
         return result
     
@@ -354,7 +399,7 @@ class PythonCodeGenerator:
             return f"None # TODO: {type(node).__name__}"
     
     def _generate_operation(self, node: Operation) -> str:
-        """Generate Python operation"""
+        """Generate Python operation with minimal parentheses"""
         operator_map = {
             '+': '+', '-': '-', '*': '*', '/': '/', '%': '%',
             '**': '**', '==': '==', '!=': '!=',
@@ -370,7 +415,16 @@ class PythonCodeGenerator:
         elif len(node.operands) == 2:
             left = self._generate_expression(node.operands[0])
             right = self._generate_expression(node.operands[1])
-            return f"({left} {op} {right})"
+            # Only wrap in parens if operands are also operations (for clarity)
+            # or for low-precedence operators in potentially ambiguous contexts
+            needs_parens = (
+                isinstance(node.operands[0], Operation) or 
+                isinstance(node.operands[1], Operation) or
+                op in ('and', 'or')
+            )
+            if needs_parens:
+                return f"({left} {op} {right})"
+            return f"{left} {op} {right}"
         else:
             operands = ', '.join([self._generate_expression(o) for o in node.operands])
             return f"{op}({operands})"

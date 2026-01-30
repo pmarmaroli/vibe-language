@@ -32,22 +32,25 @@ High token reduction percentages directly translate to lower API costs and faste
 ## Current Results (January 30, 2026)
 
 **Benchmark Suite Results** (13 test cases):
-- **Average Token Efficiency: 23.8%**
-- **Total: 262 VL tokens vs 344 Python tokens**
+- **Average Token Efficiency: 41.3%**
+- **Total: 240 VL tokens vs 409 Python tokens**
 
 **Best Performers:**
-- Data Pipeline: 45.2% savings
-- Simple Function: 41.7% savings
-- Boolean Logic: 34.4% savings
-- Conditional Return: 34.4% savings
-- Complex Logic: 25.5% savings
-- Recursion: 25.6% savings
+- Data Pipeline: 84.8% savings
+- Simple Function: 39.1% savings
+- Boolean Logic: 30.0% savings
+- Conditional Return: 30.0% savings
+- Loop with Accumulator: 30.0% savings
+- Multi-step Calculation: 30.0% savings
 
 **Features Tested:**
 - ✅ Infix operators (+, -, *, /, &&, ||, !)
 - ✅ Direct function calls with @
 - ✅ Pipeline from expressions
 - ✅ Recursion with @
+- ✅ Implicit variables (x=5)
+- ✅ Compound operators (+=, -=, *=, /=)
+- ✅ Range shorthand (0..10)
 - ✅ Data transformations
 - ✅ Complex conditionals
 

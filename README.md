@@ -12,19 +12,19 @@
 
 VL (Vibe Language) is a universal, token-efficient programming language designed for optimal collaboration between humans and AI language models. It addresses fundamental challenges in AI-assisted development through high-level, intent-based constructs that minimize ambiguity and maximize semantic clarity.
 
-**Key Innovation:** VL achieves **18-30% average token efficiency** with up to **75.5% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
+**Key Innovation:** VL achieves **41.3% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
 
 **Language Robustness: 100% (15/15 complex scenarios pass)**  
 **Example Programs: 100% (7/7 compile successfully)**  
 **Real-World Testing: 100% (15/15 scenarios compile)**  
-**Benchmark Suite: 29.6% average efficiency (13 focused test cases)**  
+**Benchmark Suite: 41.3% overall efficiency (13 focused test cases)**  
 VL handles production-level patterns including nested loops, complex string interpolation, conditional returns, API chaining, UI components, deep expression nesting, recursion with @ syntax, and pipeline operations from any expression.
 
 ### Where VL Excels
 
-**🎯 Multi-Stage Data Pipelines: 75.5% token savings**
+**🎯 Multi-Stage Data Pipelines: 84.8% token savings**
 ```vl
-data:sales|filter:amount>100|groupBy:category|filter:count>5|map:total*1.2
+data:sales|filter:amount>100|groupBy:category|agg:count
 ```
 
 **🎯 Complex Data Transformations: 57.4% token savings**
@@ -32,9 +32,9 @@ data:sales|filter:amount>100|groupBy:category|filter:count>5|map:total*1.2
 data:users|filter:age>18|filter:active==true|map:salary*1.1|filter:item>50000
 ```
 
-**🎯 API with Processing: 23.1% token savings**
+**🎯 API with Processing: 25.6% token savings**
 ```vl
-fn:fetchActive|i:str|o:arr|v:result=api:GET,i0|ret:$result|filter:status=='active'
+fn:fetchActive|i:str|o:arr|result=api:GET,i0|ret:$result|filter:status=='active'
 ```
 
 **🎯 Nested Conditional Logic: 22.4% token savings**

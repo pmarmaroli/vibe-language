@@ -5,11 +5,13 @@ Main compiler orchestrator that coordinates lexing, parsing, and code generation
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 from lexer import Lexer
 from parser import Parser
+from type_checker import type_check
+from errors import TypeError
 
 
 class TargetLanguage(Enum):
@@ -30,12 +32,15 @@ class Compiler:
         output_code = compiler.compile()
     """
     
-    def __init__(self, source: str, target: TargetLanguage = TargetLanguage.PYTHON):
+    def __init__(self, source: str, target: TargetLanguage = TargetLanguage.PYTHON,
+                 type_check_enabled: bool = True):
         self.source = source
         self.target = target
+        self.type_check_enabled = type_check_enabled
         self.lexer = None
         self.parser = None
         self.ast = None
+        self.type_errors: List[TypeError] = []
         self.output = None
     
     def compile(self) -> str:
@@ -44,19 +49,53 @@ class Compiler:
         
         Returns:
             Generated code in target language
+        
+        Raises:
+            TypeError: If type checking is enabled and errors are found
         """
         # Step 1: Lexical analysis (tokenization)
         self.lexer = Lexer(self.source)
         tokens = self.lexer.tokenize()
         
         # Step 2: Syntax analysis (parsing)
-        self.parser = Parser(tokens)
+        self.parser = Parser(tokens, self.source)  # Pass source for error context
         self.ast = self.parser.parse()
         
-        # Step 3: Code generation
+        # Step 3: Type checking (optional)
+        if self.type_check_enabled:
+            self.type_errors = type_check(self.ast, self.source)
+            if self.type_errors:
+                # Report first error (or all, depending on preference)
+                raise self.type_errors[0]
+        
+        # Step 4: Code generation
         self.output = self._generate_code()
         
         return self.output
+    
+    def compile_with_warnings(self) -> tuple[str, List[TypeError]]:
+        """
+        Compile VL source code, returning warnings instead of raising errors.
+        
+        Returns:
+            Tuple of (generated code, list of type errors as warnings)
+        """
+        # Step 1: Lexical analysis
+        self.lexer = Lexer(self.source)
+        tokens = self.lexer.tokenize()
+        
+        # Step 2: Parsing
+        self.parser = Parser(tokens, self.source)
+        self.ast = self.parser.parse()
+        
+        # Step 3: Type checking (collect but don't raise)
+        if self.type_check_enabled:
+            self.type_errors = type_check(self.ast, self.source)
+        
+        # Step 4: Code generation (always proceed)
+        self.output = self._generate_code()
+        
+        return self.output, self.type_errors
     
     def _generate_code(self) -> str:
         """Generate code for the target language"""

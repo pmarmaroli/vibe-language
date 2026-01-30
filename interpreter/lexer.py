@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import List, Optional
 import re
 
+from errors import LexerError, SourceLocation
+
 
 class TokenType(Enum):
     """All possible token types in VL"""
@@ -318,7 +320,12 @@ class Lexer:
         if self.current_char() == quote_char:
             self.advance()
         else:
-            raise SyntaxError(f"Unterminated string at {start_line}:{start_col}")
+            loc = SourceLocation(start_line, start_col)
+            raise LexerError(
+                f"Unterminated string literal",
+                location=loc,
+                hints=["String must be closed with matching quote", f"String started with {quote_char}"]
+            )
         
         return Token(TokenType.STRING, string_val, start_line, start_col)
     
@@ -458,7 +465,12 @@ class Lexer:
                 continue
             
             # Unknown character
-            raise SyntaxError(f"Unexpected character '{char}' at {self.line}:{self.column}")
+            loc = SourceLocation(self.line, self.column)
+            raise LexerError(
+                f"Unexpected character '{char}'",
+                location=loc,
+                hints=["Check for typos or unsupported characters"]
+            )
         
         # Add EOF token
         self.tokens.append(Token(TokenType.EOF, '', self.line, self.column))
