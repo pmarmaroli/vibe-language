@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: In Development](https://img.shields.io/badge/Status-In%20Development-orange.svg)]()
-[![Version: 0.1.0-alpha](https://img.shields.io/badge/Version-0.1.0--alpha-blue.svg)]()
+[![Version: 0.1.3-alpha](https://img.shields.io/badge/Version-0.1.3--alpha-blue.svg)]()
 
 -----
 
@@ -16,7 +16,20 @@
 # Clone the repository
 git clone https://github.com/pmarmaroli/vibe-language.git
 cd vibe-language
+
+# Set up Python path (required for VL compiler)
+# Windows (PowerShell)
+$env:PYTHONPATH="$PWD\src"
+
+# Unix/Linux/Mac
+export PYTHONPATH="$PWD/src"
+
+# Verify installation
+.\vl.bat examples/basic/hello.vl  # Windows
+./vl examples/basic/hello.vl       # Unix/Mac
 ```
+
+**Note:** VL is a compiler written in Python. The PYTHONPATH setting allows the Python-based compiler to find its modules. This is temporary for the alpha phase - future releases will have proper package installation.
 
 ### Using the CLI
 
@@ -66,9 +79,76 @@ vibe-language/
 └── .github/             # CI/CD pipeline
 ```
 
+### Your First VL Program
+
+Create a file named `hello.vl`:
+
+```vl
+# Simple hello world
+msg='Hello, VL!'
+@print(msg)
+
+# With a function
+fn:greet|i:str|o:str|ret:'Hello, ${i0}!'
+result=@greet('World')
+@print(result)
+```
+
+Run it:
+```bash
+# Direct execution (via Python)
+.\vl.bat hello.vl
+
+# Compile to Python and run
+.\vl.bat hello.vl --target python -o hello.py
+python hello.py
+
+# Compile to JavaScript and run
+.\vl.bat hello.vl --target javascript -o hello.js
+node hello.js
+```
+
 ### VS Code Extension
 
 Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and press `F5` to run the extension in development mode.
+
+---
+
+## Why VL?
+
+### The Problem VL Solves
+
+**AI code generation is expensive.** When you ask Claude, GPT-4, or other LLMs to write code:
+- Long verbose code = more tokens = higher cost
+- Each iteration compounds the cost
+- Context windows fill up quickly
+
+**VL cuts token usage by 40-85%** depending on the use case.
+
+### VL vs Alternatives
+
+| Feature | VL | Python | TypeScript | Rust |
+|---------|----|----|----|----|----|
+| **Token Efficiency** | ✅ 40-85% savings | ❌ Verbose | ❌ Verbose | ❌ Very verbose |
+| **Multi-Target** | ✅ 5 targets | ❌ Python only | ✅ JS only | ✅ Native |
+| **AI-Friendly** | ✅ Designed for LLMs | ⚠️ Good | ⚠️ Good | ❌ Complex |
+| **Data Pipelines** | ✅ Native syntax | ⚠️ Comprehensions | ❌ Verbose | ❌ Verbose |
+| **FFI** | ✅ Python/JS/C/Rust | ✅ C bindings | ✅ JS ecosystem | ✅ C bindings |
+| **Type Safety** | ✅ Optional | ⚠️ Optional | ✅ Strong | ✅ Strong |
+| **Learning Curve** | ✅ Minimal syntax | ✅ Easy | ⚠️ Moderate | ❌ Steep |
+
+**When to use VL:**
+- ✅ AI-generated code workflows
+- ✅ Multi-platform applications
+- ✅ Data processing pipelines
+- ✅ Rapid prototyping with LLMs
+- ✅ Token budget constraints
+
+**When NOT to use VL:**
+- ❌ Large existing codebase (Python/JS/Rust are mature)
+- ❌ Need specific framework (use native language)
+- ❌ Team unfamiliar with new languages
+- ❌ Critical production systems (VL is alpha)
 
 ---
 
@@ -220,7 +300,6 @@ vibe-language/
 │   └── package.json     # Extension manifest
 ├── docs/                # Documentation
 │   ├── specification.md # Language specification
-│   └── roadmap.md       # Development roadmap
 ├── benchmarks/          # Performance benchmarks
 ├── vl.bat              # Windows CLI wrapper
 ├── vl                  # Unix/Linux CLI wrapper
@@ -699,47 +778,7 @@ python run_benchmarks.py  # Comprehensive benchmarks
 
 -----
 
-## Development Roadmap
 
-### Phase 1: Foundation (Q1 2026) - **Current**
-
-- [x] Language specification (core domains)
-- [x] VL Lexer (full tokenization with operators)
-- [x] VL Parser (AST generation, infix operators, pipelines)
-- [x] VL → Python Compiler (100% operational)
-- [x] VL → JavaScript Compiler (in progress)
-- [x] CLI tool with wrapper scripts (`vl.bat`, `vl`)
-- [x] VS Code extension (basic syntax highlighting)
-- [x] FFI system (Python passthrough with `py:` prefix)
-- [x] Comprehensive test suite (4 test scripts, 50+ test cases)
-
-### Phase 2: Core Runtime (Q2-Q3 2026)
-
-- [ ] Complete JavaScript compiler (loops, API calls, data pipelines)
-- [ ] TypeScript compiler (type-safe JS generation)
-- [ ] VL Virtual Machine implementation
-- [ ] Standard library
-- [ ] Error handling and debugging
-- [ ] Performance benchmarks
-
-### Phase 3: Tooling & Ecosystem (Q4 2026 - Q1 2027)
-
-- [ ] VL package manager
-- [x] VS Code extension (basic complete, IntelliSense pending)
-- [x] Syntax highlighting
-- [ ] Interactive REPL
-- [ ] Documentation generator
-- [ ] Testing framework
-
-### Phase 4: Production Ready (2027+)
-
-- [ ] JIT compilation
-- [ ] Production deployment tools
-- [ ] Security model
-- [ ] Community building
-- [ ] Enterprise features
-
------
 
 ## Technical Specifications
 
@@ -946,10 +985,20 @@ Goal: Mainstream language choice
 ## Project Status
 
 **Current Version:** 0.1.3-alpha  
-**Status:** Active Development - Phase 1 Complete  
+**Status:** Active Development (Alpha) - Not Production Ready  
 **License:** MIT  
 **Started:** January 2026  
 **Creator:** Patrick Marmaroli
+
+⚠️ **Alpha Software:** VL is in active development. The core compiler works (76/76 tests passing) but:
+- APIs may change between versions
+- Not recommended for production use yet
+- Breaking changes expected in minor versions
+- Limited documentation and examples
+
+✅ **What Works:** All 5 target compilers (Python, JavaScript, TypeScript, C, Rust), type checking, data pipelines, Python FFI
+
+🚧 **What's Coming:** Standard library, package manager, stable 1.0 API (Q4 2026)
 
 ### Contributing
 

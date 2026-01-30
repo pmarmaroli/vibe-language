@@ -1,8 +1,11 @@
 # VL Language Specification v0.1
 
 **Status:** Draft  
-**Version:** 0.1.0-alpha  
+**Version:** 0.1.3-alpha  
 **Last Updated:** January 30, 2026  
+
+**Repository:** https://github.com/pmarmaroli/vibe-language  
+**Documentation:** See README.md for setup and getting started  
 
 
 -----
@@ -10,6 +13,7 @@
 ## Table of Contents
 
 1. [Introduction](#introduction)
+1. [Getting Started](#getting-started)
 1. [Design Principles](#design-principles)
 1. [Lexical Structure](#lexical-structure)
 1. [Type System](#type-system)
@@ -17,6 +21,63 @@
 1. [Domain-Specific Constructs](#domain-specific-constructs)
 1. [Examples](#examples)
 1. [Grammar Reference](#grammar-reference)
+
+-----
+
+## Getting Started
+
+### Quick Setup
+
+```bash
+# 1. Clone repository
+git clone https://github.com/pmarmaroli/vibe-language.git
+cd vibe-language
+
+# 2. Set Python path (required for compiler)
+export PYTHONPATH="$PWD/src"  # Unix/Mac
+$env:PYTHONPATH="$PWD\src"    # Windows PowerShell
+
+# 3. Run your first program
+./vl examples/basic/hello.vl
+```
+
+### Your First Program
+
+Create `test.vl`:
+```vl
+msg='Hello, VL!'
+@print(msg)
+```
+
+Compile and run:
+```bash
+./vl test.vl                           # Run via Python
+./vl test.vl --target python -o test.py && python test.py
+./vl test.vl --target javascript -o test.js && node test.js
+```
+
+### Basic Syntax Overview
+
+```vl
+# Variables
+name='Alice'
+age=30
+scores=[95, 87, 92]
+
+# Functions
+fn:greet|i:str|o:str|ret:'Hello, ${i0}!'
+
+# Function calls
+@print(@greet('World'))
+
+# Conditionals
+result=if:age>=18?'adult':'minor'
+
+# Data pipelines
+data:scores|filter:item>90|map:item*1.1
+```
+
+See [Core Constructs](#core-constructs) for complete syntax reference.
 
 -----
 
