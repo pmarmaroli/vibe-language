@@ -10,18 +10,19 @@ This directory contains the reference implementation of the VL (Vibe Language) i
 ### What's Working ✅
 
 - ✅ **Lexer/Tokenizer** - Converts VL source code into tokens
+- ✅ **Parser** - Converts tokens into Abstract Syntax Tree (AST)
+- ✅ **VL → Python compiler** - Generate Python code from VL
+- ✅ **Interpreter** - Executes the AST via Python transpilation
 - ✅ **Command-line interface** - Basic `vl.py` entry point
 
 ### What's In Progress 🚧
 
-- 🚧 **Parser** - Converts tokens into Abstract Syntax Tree (AST)
-- 🚧 **Interpreter** - Executes the AST
 - 🚧 **Error handling** - Meaningful error messages
 - 🚧 **Standard library** - Built-in functions
+- 🚧 **Code Generation** - JavaScript/TypeScript targets
 
 ### What's Planned 📋
 
-- 📋 **VL → Python compiler** - Generate Python code from VL
 - 📋 **FFI implementation** - Call Python libraries from VL
 - 📋 **Debugger** - Step-through debugging
 - 📋 **REPL** - Interactive shell
@@ -73,13 +74,15 @@ VL Source Code (.vl)
         ↓
     Tokens
         ↓
-    Parser (parser.py) [IN PROGRESS]
+    Parser (parser.py)
         ↓
     AST (Abstract Syntax Tree)
         ↓
-    Interpreter (interpreter.py) [PLANNED]
+    Compiler (codegen_python.py)
         ↓
-    Execution / Output
+    Python Code
+        ↓
+    Execution (via exec/subprocess)
 ```
 
 ---
@@ -91,10 +94,10 @@ interpreter/
 ├── README.md              # This file
 ├── vl.py                  # Main entry point / CLI
 ├── lexer.py               # Tokenizer (DONE ✅)
-├── parser.py              # Parser (IN PROGRESS 🚧)
-├── interpreter.py         # Interpreter (PLANNED 📋)
-├── ast_nodes.py           # AST node definitions (PLANNED 📋)
-├── compiler.py            # VL → Python compiler (PLANNED 📋)
+├── parser.py              # Parser (DONE ✅)
+├── ast_nodes.py           # AST node definitions (DONE ✅)
+├── codegen_python.py      # VL → Python compiler (DONE ✅)
+├── compiler.py            # Compiler Orchestrator (DONE ✅)
 ├── stdlib.py              # Standard library functions (PLANNED 📋)
 ├── errors.py              # Error classes and handling (PLANNED 📋)
 ├── test.vl                # Simple test program

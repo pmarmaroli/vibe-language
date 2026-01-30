@@ -24,16 +24,17 @@ VL aims to become the universal programming language for the AI era—enabling s
 - Design principles documented
 - Public GitHub repository established
 - Lexer/Tokenizer implementation
+- Parser (AST generation)
+- Interpreter (MVP via Python transpilation)
+- VL → Python compiler (MVP)
 - Example programs
 - Technical documentation
 
 ### 🚧 In Progress
 
-- Parser (AST generation)
-- Interpreter (MVP)
-- VL → Python compiler
 - Test suite
 - Documentation website
+- Error handling improvements
 
 ### 📋 Next Up
 
@@ -54,13 +55,13 @@ VL aims to become the universal programming language for the AI era—enabling s
 #### Technical Deliverables
 
 - [x] Complete language specification
-- [ ] Working interpreter (execute .vl files directly)
-- [ ] VL → Python compiler (MVP)
-- [ ] Core constructs implementation
-  - [ ] Functions, variables, operations
-  - [ ] Conditionals and loops
-  - [ ] Basic API calls
-  - [ ] Simple data transformations
+- [x] Working interpreter (execute .vl files directly)
+- [x] VL → Python compiler (MVP)
+- [x] Core constructs implementation
+  - [x] Functions, variables, operations
+  - [x] Conditionals and loops
+  - [x] Basic API calls
+  - [x] Simple data transformations
 - [ ] Test suite (core functionality)
 - [ ] 10-20 working examples
 - [ ] Performance benchmarks vs Python/JavaScript

@@ -13,6 +13,8 @@ import sys
 import argparse
 from pathlib import Path
 from lexer import tokenize, TokenType
+from parser import Parser, ParseError
+from codegen_python import PythonCodeGenerator
 
 # Version info
 __version__ = "0.1.0-alpha"
@@ -99,18 +101,60 @@ Examples:
                 print(token)
         sys.exit(0)
 
-    # For now, just show we read the file
-    if args.debug:
-        print(f"[DEBUG] Read {len(source_code)} characters from {args.file}")
-        print(f"[DEBUG] Source:\n{source_code}\n")
-        print(f"[DEBUG] Token count: {len(tokens)}")
-    
-    print(f"VL Interpreter v{__version__}")
-    print(f"Loaded: {args.file}")
-    
-    # TODO: 
     # 2. Parse (Parser -> AST)
-    # 3. Execute (Interpreter)
+    try:
+        parser = Parser(tokens)
+        ast = parser.parse()
+    except ParseError as e:
+        print(f"Parser Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected Parser Error: {e}", file=sys.stderr)
+        # Check if debug mode to show full trace
+        if args.debug:
+            raise
+        sys.exit(1)
+
+    # Handle --ast-only flag
+    if args.ast_only:
+        print(ast)
+        sys.exit(0)
+
+    # 3. Code Generation (VL -> Python)
+    try:
+        generator = PythonCodeGenerator(ast)
+        python_code = generator.generate()
+    except Exception as e:
+        print(f"Code Generation Error: {e}", file=sys.stderr)
+        if args.debug:
+            raise
+        sys.exit(1)
+
+    if args.debug:
+        print(f"[DEBUG] Generated Python Code:\n{python_code}\n")
+        print(f"[DEBUG] Executing code...\n")
+
+    # 4. Execute
+    try:
+        # Create a new namespace for execution
+        exec_globals = {"__name__": "__main__"}
+        exec(python_code, exec_globals)
+        
+        # If there is a main function (or export), we might need to invoke it?
+        # The prompt examples show top-level execution or function definitions.
+        # If the user defines `fn:main|...` the generated python has `def main():...` 
+        # but doesn't call it unless the VL code calls it.
+        # Python doesn't auto-run `main`.
+        # However, testing with `test.vl`: `fn:sum|...`. It doesn't run anything.
+        # If the user wants to run something, they should write a top level statement or call.
+        
+    except Exception as e:
+        print(f"Runtime Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    if args.debug:
+        print(f"\n[DEBUG] Execution finished.")
+
     
     return 0
 
