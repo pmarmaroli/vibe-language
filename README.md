@@ -29,7 +29,7 @@ export PYTHONPATH="$PWD/src"
 ./vl examples/basic/hello.vl       # Unix/Mac
 ```
 
-**Note:** VL is a compiler written in Python. The PYTHONPATH setting allows the Python-based compiler to find its modules. This is temporary for the alpha phase - future releases will have proper package installation.
+**Note:** VL is a programming language with its compiler currently implemented in Python. The PYTHONPATH setting is needed during alpha so the Python implementation can find its modules. Future releases will have system-wide toolchain installation (similar to how you install Rust, Go, or Node.js).
 
 ### Using the CLI
 
@@ -159,13 +159,13 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
 **Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
 
 **Multi-Target Architecture:**
-- ✅ **Python**: 100% operational (51/51 tests passing) - Production-ready with configurable `all()`/`any()` optimization
+- ✅ **Python**: 100% operational (51/51 tests passing) - Full feature support with configurable `all()`/`any()` optimization
 - ✅ **JavaScript**: 100% operational (14/14 tests passing) - ES6+ with native operators
 - ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
 - ✅ **C**: Basic implementation complete - ANSI C with standard library
 - ✅ **Rust**: Basic implementation complete - Safe Rust with std library
 
-**Configuration System:** Centralized settings in `vl_config.py` control optimization behavior:
+**Configuration System:** Centralized settings in `src/vl/config.py` control optimization behavior:
 - `BOOLEAN_CHAIN_MIN_LENGTH = 3` - Minimum chain length for all()/any() optimization
 - `OPTIMIZE_BOOLEAN_CHAINS = True` - Enable/disable boolean optimizations
 - Target-specific settings for file extensions, type hints, optimization flags
@@ -264,8 +264,8 @@ Compilation Success Rate: 100% (15/15)
 Execution Success Rate: 100% (17/17 validation tests)
 ```
 
-**Recent Improvements (v0.1.2):**
-- **100% Operational**: All generated Python executes correctly
+**Recent Improvements (v0.1.3):**
+- **All Tests Passing**: All generated Python executes correctly (validation tests)
 - **Type Safety**: Full typing support with `List[Any]`, `Dict[str, Any]`
 - **Array/Object Indexing**: `arr[0]`, `obj['key']`, nested indexing
 - **Data Pipelines**: Fixed `item` keyword in map/filter operations
@@ -416,7 +416,7 @@ file:write,output.csv,$result
 
 -----
 
-## Production-Ready Robustness
+## Language Robustness
 
 **100% Pass Rate on Complex Scenarios** (15/15)
 
