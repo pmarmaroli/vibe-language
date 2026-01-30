@@ -128,12 +128,12 @@ Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and p
 ### VL vs Alternatives
 
 | Feature | VL | Python | TypeScript | Rust |
-|---------|----|----|----|----|----|
+|---------|-------|--------|------------|------|
 | **Token Efficiency** | ✅ 40-85% savings | ❌ Verbose | ❌ Verbose | ❌ Very verbose |
 | **Multi-Target** | ✅ 5 targets | ❌ Python only | ✅ JS only | ✅ Native |
 | **AI-Friendly** | ✅ Designed for LLMs | ⚠️ Good | ⚠️ Good | ❌ Complex |
 | **Data Pipelines** | ✅ Native syntax | ⚠️ Comprehensions | ❌ Verbose | ❌ Verbose |
-| **FFI** | ✅ Python/JS/C/Rust | ✅ C bindings | ✅ JS ecosystem | ✅ C bindings |
+| **FFI** | ✅ Python (working)<br>🚧 JS/C/Rust (planned) | ✅ C bindings | ✅ JS ecosystem | ✅ C bindings |
 | **Type Safety** | ✅ Optional | ⚠️ Optional | ✅ Strong | ✅ Strong |
 | **Learning Curve** | ✅ Minimal syntax | ✅ Easy | ⚠️ Moderate | ❌ Steep |
 
@@ -158,9 +158,9 @@ VL (Vibe Language) is a universal, token-efficient programming language designed
 
 **Key Innovation:** VL achieves **45.1% overall token efficiency** with up to **84.8% token reduction** in data pipeline scenarios compared to traditional languages (Python, JavaScript) while maintaining complete semantic expressiveness, making it ideal for LLM code generation and cross-platform development.
 
-**Multi-Target Architecture:**
-- ✅ **Python**: 100% operational (51/51 tests passing) - Full feature support with configurable `all()`/`any()` optimization
-- ✅ **JavaScript**: 100% operational (14/14 tests passing) - ES6+ with native operators
+**Multi-Target Compilation** (VL compiles to 5 languages):
+- ✅ **Python**: All tests passing (51/51) - Full feature support with configurable `all()`/`any()` optimization
+- ✅ **JavaScript**: All tests passing (14/14) - ES6+ with native operators
 - ✅ **TypeScript**: Basic implementation complete - Type annotations + ES6+
 - ✅ **C**: Basic implementation complete - ANSI C with standard library
 - ✅ **Rust**: Basic implementation complete - Safe Rust with std library
@@ -314,7 +314,7 @@ vibe-language/
 1. **Semantic Clarity**: Unambiguous constructs eliminate interpretation errors
 1. **Intent-Based**: Describe *what* the code should do, not *how* to implement it
 1. **Universal**: Single language for web, mobile, backend, data processing, and more
-1. **FFI-First**: Native interoperability with Python, JavaScript, Rust, and C libraries
+1. **FFI-First** *(vision)*: Native interoperability with Python, JavaScript, Rust, and C libraries
 1. **Cross-Platform**: Write once, execute anywhere
 
 -----
@@ -674,10 +674,12 @@ VL employs a hybrid execution model:
 
 ## Foreign Function Interface (FFI)
 
-VL integrates seamlessly with existing ecosystems:
+### Currently Implemented
+
+✅ **Python FFI** - Use `py:` prefix to call any Python library directly:
 
 ```vl
-# Call Python libraries directly with py: prefix
+# Call Python libraries
 x=py:np.array([1,2,3])
 df=py:pd.read_csv('data.csv')
 result=py:scipy.stats.norm.pdf(0.5)
@@ -685,13 +687,15 @@ data=py:requests.get('http://api.com').json()
 
 # Use in functions
 fn:parse|i:str|o:obj|ret:py:json.loads(i0)
-
-# Future: JavaScript/Node, Rust FFI planned
 ```
 
-✅ **Python FFI is now working!** Use `py:` to call any Python library directly.
+This enables VL to leverage Python's mature ecosystem while building native implementations incrementally.
 
-This enables VL to leverage mature ecosystems while building native implementations incrementally.
+### Planned (Vision)
+
+🚧 **JavaScript/Node FFI** - `js:` prefix for Node.js libraries (planned)  
+🚧 **Rust FFI** - `rust:` prefix for Rust crates (planned)  
+🚧 **C FFI** - `c:` prefix for C libraries (planned)
 
 -----
 
