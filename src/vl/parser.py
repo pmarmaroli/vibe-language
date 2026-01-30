@@ -1725,7 +1725,15 @@ class Parser:
         
         pairs = []
         while not self.match(TokenType.RBRACE):
-            key = self.expect(TokenType.IDENTIFIER).value
+            # Allow reserved keywords as object literal keys
+            if self.current_token.type == TokenType.IDENTIFIER:
+                key = self.current_token.value
+                self.advance()
+            elif self.current_token.type.name in ['INPUT', 'OUTPUT', 'FN', 'META', 'VAR', 'FOR', 'WHILE', 'IF', 'ELSE', 'RET', 'EXPORT', 'CALL', 'OP', 'PY']:
+                key = self.current_token.value if self.current_token.value else self.current_token.type.name.lower()
+                self.advance()
+            else:
+                raise self.error(f"Expected object key (identifier or keyword), got {self.current_token.type.name}")
             self.expect(TokenType.COLON)
             
             # Check if value is a function expression (fn:name|...)
