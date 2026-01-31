@@ -247,7 +247,6 @@ A: Download from [Releases](https://github.com/pmarmaroli/vibe-language/releases
 | **2. Marketplace** | 🔄 Next | Public VS Code marketplace release |
 | **3. Multi-IDE** | 📋 Planned | Cursor, JetBrains integration, enterprise features |
 | **4. Ecosystem** | 🔮 Future | Community growth, marketplace launch |
-- Public marketplace launch, community growth
 
 ---
 
