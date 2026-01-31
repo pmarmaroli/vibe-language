@@ -164,13 +164,15 @@ def get_active(url: str) -> list:
 
 ## Key Features
 
-✅ **Multi-Target Compilation** - Compiles to Python, JavaScript, TypeScript, C, Rust
-✅ **Python ↔ VL Converter** - 100% success rate on real-world code
-✅ **VS Code Integration** - Chat participant with analytics dashboard
-✅ **Syntax Validation** - Prevents corrupted file conversions
-✅ **Token Estimation** - Calibrated with actual Claude tokenizer (2.58 chars/token)
-✅ **Python FFI** - Call any Python library directly (`py:numpy.array([1,2,3])`)
-✅ **Prompt Caching** - 90% savings on repeated VL spec requests
+| Feature | Description |
+|---------|-------------|
+| **Multi-Target Compilation** | Compiles to Python, JavaScript, TypeScript, C, Rust |
+| **Python ↔ VL Converter** | 100% success rate on real-world code |
+| **VS Code Integration** | Chat participant with analytics dashboard |
+| **Syntax Validation** | Prevents corrupted file conversions |
+| **Token Estimation** | Calibrated with actual Claude tokenizer (2.58 chars/token) |
+| **Python FFI** | Call any Python library directly (`py:numpy.array([1,2,3])`) |
+| **Prompt Caching** | 90% savings on repeated VL spec requests |
 
 ### Supported Python Features
 
