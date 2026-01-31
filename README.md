@@ -19,6 +19,7 @@
 - Automatic Python → VL conversion before sending to AI
 - Analytics dashboard tracks your savings
 - **Zero learning curve** - just chat normally
+- **Currently supports:** Python (JavaScript/TypeScript coming soon)
 
 **2. Direct Compiler (CLI)**
 - Use VL syntax directly for maximum token savings
@@ -51,6 +52,8 @@
 - CSV export of savings history
 - Apply Code buttons for one-click implementation
 - Claude API with prompt caching (90% savings on cached requests)
+
+**Language Support:** Python (alpha) • JavaScript/TypeScript (coming soon)
 
 ---
 
@@ -201,7 +204,7 @@ Full conversion support for:
 |-----------|--------|
 | **Core VL Compiler** | 5 target languages (Python, JS, TS, C, Rust) |
 | **Python ↔ VL Converter** | 100% success rate on real-world code |
-| **VS Code Extension** | `@vl` chat participant with analytics |
+| **VS Code Extension** | `@vl` chat participant (Python only) |
 | **Analytics Dashboard** | Persistent storage with CSV export |
 | **Test Coverage** | 65+ core tests, all passing |
 | **LLM Validation** | Claude & Gemini: 100% correctness |
@@ -243,8 +246,9 @@ A: Download from [Releases](https://github.com/pmarmaroli/vibe-language/releases
 | Phase | Status | Deliverables |
 |-------|--------|-------------|
 | **1. Core Language** | ✅ Complete | Multi-target compiler, Python converter, test suite |
-| **2. Transparent Mode** | ✅ Alpha | VS Code extension, analytics dashboard, packaging |
+| **2. Transparent Mode** | ✅ Alpha | VS Code extension (Python), analytics dashboard, packaging |
 | **2. Marketplace** | 🔄 Next | Public VS Code marketplace release |
+| **2. Multi-Language Extension** | 📋 Planned | JavaScript/TypeScript support in extension |
 | **3. Multi-IDE** | 📋 Planned | Cursor, JetBrains integration, enterprise features |
 | **4. Ecosystem** | 🔮 Future | Community growth, marketplace launch |
 
