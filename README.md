@@ -52,7 +52,7 @@
 
 ---
 
-> **💡 The Vision:** VL will operate transparently in VS Code, automatically reducing your GitHub Copilot/Cursor costs by 45% without changing how you code. Install the extension, keep coding normally, save money. **Zero learning curve.**
+> **💡 The Vision:** VL will operate transparently in VS Code, automatically reducing your GitHub Copilot/Cursor costs by 7-15% without changing how you code. Install the extension, keep coding normally, save money. **Zero learning curve.**
 
 > **📍 Current Status:** The VL compiler is production-ready for manual optimization workflows. VS Code transparent mode extension is in active development. [Star this repo](https://github.com/pmarmaroli/vibe-language) to follow progress!
 
@@ -60,49 +60,17 @@
 
 ## 🚀 Get Started
 
-### Option 1: VS Code Extension (Alpha - Available Now)
+### Option 1: VS Code Extension (Coming Soon)
 
-**Try the VL extension for manual conversion:**
+**The VS Code extension with transparent mode is in development.**
 
-#### Setup (5 minutes)
-1. Open VS Code in the `vibe-language/vibe-vscode` folder
-2. Install dependencies: `npm install`
-3. Compile: `npm run compile`
-4. Press **F5** to launch Extension Development Host
+Features in development:
+- Automatic Python/JS → VL conversion before AI requests
+- Automatic VL → Python/JS conversion for responses  
+- Real-time cost savings dashboard
+- Works with GitHub Copilot and Claude
 
-#### Usage
-In the Extension Development Host:
-1. Open any Python file (e.g., `test_conversion.py`)
-2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P`)
-3. Run command: **"VL: Convert Current File to VL"**
-4. See token-optimized VL version with savings percentage!
-
-#### Available Commands
-- `VL: Convert Current File to VL` - Python → VL conversion
-- `VL: Compile VL to Target Language` - VL → Python/JS/TS
-- `VL: Show Cost Savings Dashboard` - View analytics
-- `VL: Toggle Transparent Mode` - Enable/disable (info only)
-
-#### Extension Structure
-```
-vibe-vscode/
-├── src/
-│   ├── extension.ts              # Main entry point, command registration
-│   ├── converter/
-│   │   └── vlConverter.ts        # Python bridge to VL compiler
-│   ├── ui/
-│   │   ├── statusBar.ts          # Token savings status bar
-│   │   └── dashboard.ts          # Analytics webview
-│   ├── transparent-mode/
-│   │   └── manager.ts            # Future Copilot integration (stub)
-│   └── utils/
-│       └── logger.ts             # Debug logging
-├── out/                          # Compiled JavaScript
-├── package.json                  # Extension manifest
-└── tsconfig.json                 # TypeScript config
-```
-
-**Status:** Manual conversion working. Transparent Copilot interception coming Q2 2026.
+**Status:** Alpha testing Q2 2026. [Star this repo](https://github.com/pmarmaroli/vibe-language) for updates.
 
 ---
 
@@ -167,15 +135,6 @@ vibe-language/
 │   ├── py2vl.py         # Python → VL CLI tool
 │   ├── type_checker.py  # Type validation
 │   └── config.py        # Configuration settings
-├── vibe-vscode/         # VS Code Extension (NEW!)
-│   ├── src/             # TypeScript source
-│   │   ├── extension.ts        # Main entry point
-│   │   ├── converter/          # VL converter bridge
-│   │   ├── ui/                 # Status bar, dashboard
-│   │   ├── transparent-mode/   # Future Copilot integration
-│   │   └── utils/              # Logger, helpers
-│   ├── out/             # Compiled JS (run npm compile)
-│   └── package.json     # Extension manifest
 ├── tests/               # All tests organized by type
 │   ├── unit/            # Unit tests for individual components
 │   ├── integration/     # Integration tests including Python↔VL roundtrips
@@ -192,8 +151,6 @@ vibe-language/
 **Key Files to Know:**
 - `src/vl/py_to_vl.py` - Python → VL conversion logic (100% success rate)
 - `src/vl/compiler.py` - VL → Python/JS/TS/C/Rust compilation
-- `vibe-vscode/src/extension.ts` - VS Code extension main logic
-- `vibe-vscode/src/converter/vlConverter.ts` - Bridge between extension and compiler
 
 ### Your First VL Program
 
@@ -275,7 +232,14 @@ python -m vl.py2vl script.py -o script.vl
 
 ### VS Code Extension
 
-Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and press `F5` to run the extension in development mode.
+The VS Code extension is in development and will be available on the VS Code Marketplace when ready. 
+
+**Features planned:**
+- Automatic transparent mode (no manual conversion needed)
+- Real-time cost savings dashboard
+- Works with GitHub Copilot and Claude
+
+[Star this repo](https://github.com/pmarmaroli/vibe-language) to be notified when it's released.
 
 ---
 
@@ -291,14 +255,14 @@ Syntax highlighting is available! Open the `vibe-vscode` folder in VS Code and p
 
 **The problem:** Python and JavaScript are verbose. More tokens = higher costs.
 
-**VL's solution:** Automatically reduce token usage by **45.1% on average** (up to **84.8%**).
+**VL's solution:** Automatically reduce token usage by **7-15% on Claude API** (up to **45% source compression**).
 
 ### How It Works
 
 **Transparent Mode (Coming Soon):**
 1. You write code normally in Python/JavaScript
 2. VL extension converts context to compact VL format before sending to AI
-3. AI generates VL code (45% fewer tokens = 45% lower cost)
+3. AI generates VL code (fewer tokens = lower cost)
 4. Extension converts VL response back to Python/JavaScript
 5. You see normal code, pay less money
 
@@ -541,9 +505,6 @@ vibe-language/
 │   ├── basic/           # Hello world, functions, loops
 │   ├── data/            # Data pipelines, APIs, CSV processing
 │   └── ui/              # UI components
-├── vibe-vscode/         # VS Code extension
-│   ├── syntaxes/        # TextMate grammar
-│   └── package.json     # Extension manifest
 ├── docs/                # Documentation
 │   └── specification.md # Language specification
 ├── vl.bat               # Windows CLI wrapper
@@ -1430,49 +1391,17 @@ python -m pytest tests/ --cov=src/vl --cov-report=html
 
 ## 🔧 Troubleshooting
 
-### VS Code Extension Issues
+### Compiler Issues
 
-**Problem: "Cannot find module './ui/dashboard'" error in extension.ts**
-```bash
-# Solution: Restart TypeScript server
-cd vibe-vscode
-npm run compile
-# In VS Code: Ctrl+Shift+P → "TypeScript: Restart TS Server"
-```
-
-**Problem: Extension doesn't load / commands not found**
-```bash
-# Solution: Rebuild and restart
-cd vibe-vscode
-rm -rf out node_modules
-npm install
-npm run compile
-# Press F5 to launch Extension Development Host
-```
-
-**Problem: Python converter fails with "No module named 'vl'"**
+**Problem: "No module named 'vl'" error**
 ```bash
 # Solution: Set PYTHONPATH environment variable
 # Windows PowerShell
 $env:PYTHONPATH="D:\Github\vibe-language\src"
 
 # Unix/Linux/Mac
-export PYTHONPATH="/path/to/vibe-language/src"
-
-# The extension looks for VL compiler relative to its path:
-# vibe-language/vibe-vscode/../src/vl/
+export PYTHONPATH="$PWD/src"
 ```
-
-**Problem: "python command not found" in extension**
-```json
-// Solution: Configure Python path in VS Code settings
-{
-  "vl.compiler.pythonPath": "C:\\Python39\\python.exe"  // Windows
-  "vl.compiler.pythonPath": "/usr/bin/python3"         // Unix
-}
-```
-
-### Compiler Issues
 
 **Problem: PYTHONPATH not set**
 ```bash
@@ -1498,31 +1427,10 @@ python tests/integration/test_realworld_py2vl.py
 
 ### Development Workflow
 
-**Quick Reset (Fresh Start):**
-```bash
-# 1. Clean everything
-cd vibe-language/vibe-vscode
-rm -rf out node_modules
-
-# 2. Reinstall
-npm install
-npm run compile
-
-# 3. Set environment
-cd ..
-export PYTHONPATH="$PWD/src"  # or $env:PYTHONPATH on Windows
-
-# 4. Test compiler
-python -m vl.py2vl test_conversion.py
-
-# 5. Test extension (F5 in VS Code)
-```
-
 **Daily Development Checklist:**
 1. ✅ PYTHONPATH is set (`echo $PYTHONPATH` or `$env:PYTHONPATH`)
-2. ✅ Extension compiled (`npm run compile` in vibe-vscode/)
-3. ✅ Python tests pass (`python tests/codegen/test_codegen_all.py`)
-4. ✅ Extension commands work (F5 → test conversion)
+2. ✅ Python tests pass (`python tests/codegen/test_codegen_all.py`)
+3. ✅ CLI works (`./vl.bat examples/basic/hello.vl`)
 
 ---
 
