@@ -197,18 +197,22 @@ Full conversion support for:
 
 ### What Works
 
-✅ Core VL compiler (5 target languages)
-✅ Python ↔ VL bidirectional conversion (100% success rate)
-✅ VS Code extension with `@vl` chat participant
-✅ Analytics dashboard with persistent storage
-✅ All tests passing (65+ core tests)
-✅ LLM validation (Claude & Gemini: 100% correctness)
+| Component | Status |
+|-----------|--------|
+| **Core VL Compiler** | 5 target languages (Python, JS, TS, C, Rust) |
+| **Python ↔ VL Converter** | 100% success rate on real-world code |
+| **VS Code Extension** | `@vl` chat participant with analytics |
+| **Analytics Dashboard** | Persistent storage with CSV export |
+| **Test Coverage** | 65+ core tests, all passing |
+| **LLM Validation** | Claude & Gemini: 100% correctness |
 
 ### Known Limitations
 
-⚠️ Alpha software - APIs may change
-⚠️ VS Code extension in alpha testing
-⚠️ Not recommended for production VL code (use generated Python/JS instead)
+| Limitation | Details |
+|------------|----------|
+| **Alpha Software** | APIs may change between versions |
+| **Extension Status** | VS Code extension in alpha testing |
+| **Production Use** | Use generated Python/JS code, not VL source files directly |
 
 ---
 
@@ -236,18 +240,13 @@ A: Download from [Releases](https://github.com/pmarmaroli/vibe-language/releases
 
 ## Roadmap
 
-**Phase 1: Core Language** ✅ Complete
-- Multi-target compiler, Python converter, test suite
-
-**Phase 2: Transparent Mode** ✅ Alpha Complete
-- VS Code extension with chat participant, analytics dashboard
-- Extension packaged and available for testing
-- **Next:** Public marketplace release
-
-**Phase 3: Multi-IDE** (Planned)
-- Cursor, JetBrains integration, enterprise features
-
-**Phase 4: Ecosystem** (Future)
+| Phase | Status | Deliverables |
+|-------|--------|-------------|
+| **1. Core Language** | ✅ Complete | Multi-target compiler, Python converter, test suite |
+| **2. Transparent Mode** | ✅ Alpha | VS Code extension, analytics dashboard, packaging |
+| **2. Marketplace** | 🔄 Next | Public VS Code marketplace release |
+| **3. Multi-IDE** | 📋 Planned | Cursor, JetBrains integration, enterprise features |
+| **4. Ecosystem** | 🔮 Future | Community growth, marketplace launch |
 - Public marketplace launch, community growth
 
 ---
