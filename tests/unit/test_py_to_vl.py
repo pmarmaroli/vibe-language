@@ -22,9 +22,9 @@ def add(x: int, y: int) -> int:
     converter = PythonToVLConverter()
     vl_code = converter.convert(python_code)
     
-    assert 'fn:add' in vl_code
-    assert 'i:int,int' in vl_code
-    assert 'o:int' in vl_code
+    assert 'F:add' in vl_code
+    assert 'I,I' in vl_code
+    assert '|I|' in vl_code
     assert 'ret:i0+i1' in vl_code
     print("✓ Simple function conversion works")
 

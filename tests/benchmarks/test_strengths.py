@@ -5,9 +5,9 @@ Tests edge cases, performance patterns, and real-world complexity
 """
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent / 'interpreter'))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from compiler import Compiler, TargetLanguage
+from vl.compiler import Compiler, TargetLanguage
 import tiktoken
 
 encoding = tiktoken.get_encoding("cl100k_base")
@@ -72,7 +72,7 @@ scenarios = [
     
     # STRENGTH TEST: Mathematical expressions
     ("Complex Math Expression",
-     "fn:calc|i:int,int,int|o:int|ret:(i0*i1)+(i2/2)",
+     "F:calc|I,I,I|I|ret:(i0*i1)+(i2/2)",
      "def calc(a, b, c):\n    return (a * b) + (c / 2)"),
     
     # TEST: Object manipulation (using implicit vars)
@@ -82,12 +82,12 @@ scenarios = [
     
     # STRENGTH TEST: Conditional logic chains
     ("Nested Conditional Logic",
-     "fn:classify|i:int|o:str|ret:if:i0>1000?'huge':if:i0>100?'large':if:i0>10?'medium':'small'",
+     "F:classify|I|S|ret:if:i0>1000?'huge':if:i0>100?'large':if:i0>10?'medium':'small'",
      "def classify(x):\n    if x > 1000:\n        return 'huge'\n    elif x > 100:\n        return 'large'\n    elif x > 10:\n        return 'medium'\n    else:\n        return 'small'"),
     
     # TEST: Error handling pattern
     ("Error Handling Pattern",
-     "fn:safeDivide|i:int,int|o:int|if:i1==0?ret:0:ret:i0/i1",
+     "F:safeDivide|I,I|I|if:i1==0?ret:0:ret:i0/i1",
      "def safeDivide(a, b):\n    if b == 0:\n        return 0\n    else:\n        return a / b"),
     
     # TEST: Array literal creation (using implicit vars)
@@ -97,27 +97,27 @@ scenarios = [
     
     # STRENGTH TEST: Loop with accumulator (using range shorthand and +=)
     ("Loop with Accumulator",
-     "fn:sumRange|i:int|o:int|total=0|for:idx,0..i0|total+=idx|ret:total",
+     "F:sumRange|I|I|total=0|for:idx,0..i0|total+=idx|ret:total",
      "def sumRange(n):\n    total = 0\n    for idx in range(0, n):\n        total = total + idx\n    return total"),
     
     # TEST: String interpolation complexity
     ("Complex String Interpolation",
-     "fn:describe|i:str,int,bool|o:str|ret:'User ${i0} is ${i1} years old and is ${if:i2?'verified':'unverified'}'",
+     "F:describe|S,I,B|S|ret:'User ${i0} is ${i1} years old and is ${if:i2?'verified':'unverified'}'",
      "def describe(name, age, verified):\n    status = 'verified' if verified else 'unverified'\n    return f'User {name} is {age} years old and is {status}'"),
     
     # WEAKNESS TEST: Class definition (not supported)
     ("Class-like Structure",
-     "v:Person={init:fn:new|i:str,int|o:obj|ret:{name:i0,age:i1}}",
+     "v:Person={init:F:new|S,I|O|ret:{name:i0,age:i1}}",
      "class Person:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age"),
     
     # TEST: API with chaining (using implicit var)
     ("API Call with Processing",
-     "fn:fetchActive|i:str|o:arr|result=api:GET,i0|ret:$result|filter:status=='active'",
+     "F:fetchActive|S|A|result=api:GET,i0|ret:$result|filter:status=='active'",
      "def fetchActive(url):\n    import requests\n    response = requests.get(url)\n    data = response.json()\n    return [item for item in data if item['status'] == 'active']"),
     
     # TEST: Recursive pattern (if supported)
     ("Factorial Recursion",
-     "fn:fact|i:int|o:int|if:i0<=1?ret:1:ret:i0*@fact(i0-1)",
+     "F:fact|I|I|if:i0<=1?ret:1:ret:i0*@fact(i0-1)",
      "def fact(n):\n    if n <= 1:\n        return 1\n    else:\n        return n * fact(n - 1)"),
     
     # TEST: Dictionary operations (using implicit vars)
@@ -132,7 +132,7 @@ scenarios = [
     
     # TEST: Boolean operations
     ("Complex Boolean Logic",
-     "fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2",
+     "F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2",
      "def validate(a, b, c):\n    return a > 0 and b < 100 and c"),
 ]
 

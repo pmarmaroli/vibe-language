@@ -59,7 +59,7 @@ def run_all_tests():
     # Test 2: Type annotations
     results.append(test_case(
         "Type Annotations",
-        "fn:process|i:arr,obj|o:int|ret:5",
+        "F:process|A,O|I|ret:5",
         lambda g: (
             callable(g['process']) and g['process']([], {}) == 5,
             print(f"  process([], {{}}) = {g['process']([], {})}")
@@ -69,7 +69,7 @@ def run_all_tests():
     # Test 3: Array indexing
     results.append(test_case(
         "Array Indexing",
-        "fn:first|i:arr|o:int|ret:i0[0]",
+        "F:first|A|I|ret:i0[0]",
         lambda g: (
             g['first']([10, 20, 30]) == 10,
             print(f"  first([10,20,30]) = {g['first']([10, 20, 30])}")
@@ -79,7 +79,7 @@ def run_all_tests():
     # Test 4: Object member access
     results.append(test_case(
         "Object Member Access (indexing)",
-        "fn:getName|i:obj|o:str|ret:i0['name']",
+        "F:getName|O|S|ret:i0['name']",
         lambda g: (
             g['getName']({'name': 'Alice'}) == 'Alice',
             print(f"  getName({{'name': 'Alice'}}) = {g['getName']({'name': 'Alice'})}")
@@ -89,7 +89,7 @@ def run_all_tests():
     # Test 5: Complex function with loop
     results.append(test_case(
         "Loop with Accumulator",
-        "fn:sum|i:arr|o:int|total=0|for:i,i0|total+=i|ret:total",
+        "F:sum|A|I|total=0|for:i,i0|total+=i|ret:total",
         lambda g: (
             g['sum']([1, 2, 3, 4, 5]) == 15,
             print(f"  sum([1,2,3,4,5]) = {g['sum']([1, 2, 3, 4, 5])}")
@@ -99,7 +99,7 @@ def run_all_tests():
     # Test 6: Nested conditionals with booleans
     results.append(test_case(
         "Conditionals with Booleans",
-        "fn:test|i:int|o:bool|ret:if:i0>10?true:false",
+        "F:test|I|B|ret:if:i0>10?true:false",
         lambda g: (
             g['test'](15) == True and g['test'](5) == False,
             print(f"  test(15) = {g['test'](15)}, test(5) = {g['test'](5)}")
@@ -119,7 +119,7 @@ def run_all_tests():
     # Test 8: Nested array indexing
     results.append(test_case(
         "Nested Indexing",
-        "fn:get|i:arr|o:int|ret:i0[1][0]",
+        "F:get|A|I|ret:i0[1][0]",
         lambda g: (
             g['get']([[1, 2], [3, 4], [5, 6]]) == 3,
             print(f"  get([[1,2],[3,4],[5,6]]) = {g['get']([[1, 2], [3, 4], [5, 6]])}")
@@ -139,7 +139,7 @@ def run_all_tests():
     # Test 10: Range with loop
     results.append(test_case(
         "Range Expression",
-        "fn:count|i:int|o:int|total=0|for:i,0..i0|total+=1|ret:total",
+        "F:count|I|I|total=0|for:i,0..i0|total+=1|ret:total",
         lambda g: (
             g['count'](5) == 5,
             print(f"  count(5) = {g['count'](5)}")

@@ -30,7 +30,7 @@ def test_boolean_optimization():
     
     # VL source with 3 boolean conditions (should trigger optimization)
     vl_source = """
-fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2
 """
     
     print("Testing Boolean Logic Optimization Across Targets")
@@ -129,7 +129,7 @@ def test_or_chain():
     """Test OR chain optimization"""
     
     vl_source = """
-fn:hasError|i:int,int,int|o:bool|ret:i0<0||i1<0||i2<0
+F:hasError|I,I,I|B|ret:i0<0||i1<0||i2<0
 """
     
     print("\n\nTesting OR Chain Optimization")
@@ -159,7 +159,7 @@ def test_short_chain():
     """Test that short chains (2 conditions) don't trigger optimization"""
     
     vl_source = """
-fn:check|i:int,int|o:bool|ret:i0>0&&i1<100
+F:check|I,I|B|ret:i0>0&&i1<100
 """
     
     print("\n\nTesting Short Chain (2 conditions - no optimization)")

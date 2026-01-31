@@ -53,7 +53,7 @@ print()
 # Now an LLM would work with the VL version
 # For this demo, let's manually fix the VL code
 fixed_vl = """
-fn:calculate_discount|i:float,int|o:float|
+F:calculate_discount|N,I|N|
   discount=i0*i1/100|
   final_price=i0-discount|
   ret:final_price|

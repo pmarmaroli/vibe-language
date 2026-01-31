@@ -59,13 +59,13 @@ Compile and run:
 ### Basic Syntax Overview
 
 ```vl
-# Variables
+# Variables (implicit, no prefix needed)
 name='Alice'
 age=30
 scores=[95, 87, 92]
 
-# Functions
-fn:greet|i:str|o:str|ret:'Hello, ${i0}!'
+# Functions (F: prefix, single-char types)
+F:greet|S|S|ret:'Hello, ${i0}!'
 
 # Function calls
 @print(@greet('World'))
@@ -76,6 +76,8 @@ result=if:age>=18?'adult':'minor'
 # Data pipelines
 data:scores|filter:item>90|map:item*1.1
 ```
+
+**Type Shortcuts:** `I`=int, `S`=str, `N`=float, `B`=bool, `A`=array, `O`=object
 
 See [Core Constructs](#core-constructs) for complete syntax reference.
 
@@ -179,7 +181,7 @@ def fetch_active_users(api_url):
 VL approach (with infix operators and expression pipelines):
 
 ```vl
-fn:fetchActive|i:str|o:arr|v:result=api:GET,i0|ret:$result|filter:status=='active'
+F:fetchActive|S|A|v:result=api:GET,i0|ret:$result|filter:status=='active'
 ```
 
 **LLM Token Cost:** ~30 tokens to generate
@@ -198,11 +200,28 @@ Based on comprehensive testing:
 - **8 scenarios with >20% savings** (up from 6)
 - **Only 1 scenario with >10% overhead** (improved from 2)
 
-**New Syntax Features (v0.1.1):**
+**Syntax Features (v0.1.2):**
 - Implicit variables: `x=5` (no `v:` prefix needed)
 - Implicit function calls: `print('hi')` (no `@` prefix needed)
 - Compound operators: `+=`, `-=`, `*=`, `/=`
 - Range shorthand: `0..10` instead of `range(0,10)`
+- **Compact keywords:** `F:` for functions, `M:` for meta, `E:` for export
+- **Single-char types:** `I`=int, `S`=str, `N`=float, `B`=bool, `A`=arr, `O`=obj
+- **Positional function syntax:** `F:name|types|type|body` (no `i:`/`o:` markers)
+
+**Standard Syntax Example:**
+```vl
+# Function with two int inputs, int output
+F:add|I,I|I|ret:i0+i1
+
+# Data pipeline with array
+F:process|A|A|ret:data:i0|filter:item>5|map:item*2
+
+# Full program
+M:myapp,function,python
+F:greet|S|S|ret:'Hello, ${i0}!'
+E:greet
+```
 
 -----
 
@@ -247,7 +266,7 @@ These operations happen on the user’s machine with **ZERO token costs:**
 │ Human: "Create a function that fetches users"               │
 │    ↓                                                         │
 │ LLM generates VL code (20 tokens):                          │
-│ fn:getUsers|i:str|o:arr|api:GET,$i                         │
+│ F:getUsers|S|A|api:GET,$i                                   │
 │                                                              │
 │ COST: 20 tokens × $0.003/1K = $0.00006                     │
 └─────────────────────────────────────────────────────────────┘
@@ -352,7 +371,7 @@ def calculate_average(numbers):
 VL optimizes for token efficiency:
 
 ```vl
-fn:avg|i:arr|o:float|ret:op:/(agg:sum,i,agg:count,i)
+F:avg|A|N|ret:op:/(agg:sum,i,agg:count,i)
 ```
 
 ### 2. Intent Over Implementation
@@ -569,25 +588,25 @@ v:items=[1,2,3]
 Every VL file follows this structure:
 
 ```vl
-meta:name,type,target_language
+M:name,type,target_language
 deps:[dependencies]
 [main content]
-export:name
+E:name
 ```
 
 **Example:**
 
 ```vl
-meta:calculator,function,python
+M:calculator,function,python
 deps:math
-fn:add|i:int,int|o:int|ret:op:+(i0,i1)
-export:add
+F:add|I,I|I|ret:i0+i1
+E:add
 ```
 
 ### Metadata Declaration
 
 ```vl
-meta:name,type,target
+M:name,type,target
 ```
 
 **Parameters:**
@@ -613,49 +632,64 @@ deps:express,axios
 ### Functions
 
 ```vl
-fn:name|i:type1,type2,...|o:return_type|body
+F:name|input_types|output_type|body
 ```
 
 **Components:**
 
-- `fn:name` - Function name
-- `i:type1,type2` - Input parameters (comma-separated)
-- `o:return_type` - Return type
+- `F:name` - Function name
+- `input_types` - Input parameter types (comma-separated): `I,I` for two ints
+- `output_type` - Return type: `I`, `S`, `A`, etc.
 - `body` - Function body (can span multiple lines with `|`)
+
+**Type Shortcuts:**
+| Short | Full | Description |
+|-------|------|-------------|
+| `I` | int | Integer |
+| `S` | str | String |
+| `N` | float | Number (float) |
+| `B` | bool | Boolean |
+| `A` | arr | Array |
+| `O` | obj | Object |
+| `V` | void | Void |
+| `P` | promise | Promise |
+| `L` | func | Lambda/Function |
 
 **Examples:**
 
 ```vl
 # Simple function
-fn:double|i:int|o:int|ret:op:*(i,2)
+F:double|I|I|ret:i0*2
 
 # Multiple inputs
-fn:add|i:int,int|o:int|ret:op:+(i0,i1)
+F:add|I,I|I|ret:i0+i1
 
 # Array input
-fn:sum|i:arr|o:int|ret:agg:sum,$i
+F:sum|A|I|ret:agg:sum,i0
 
 # Multi-line body
-fn:process|i:arr|o:arr|
-  v:filtered=filter:$i,x>0|
-  v:doubled=map:$filtered,op:*(x,2)|
-  ret:$doubled
+F:process|A|A|
+  filtered=filter:i0,x>0|
+  doubled=map:filtered,x*2|
+  ret:doubled
 ```
 
 ### Variables
 
+Variables use implicit declaration (no prefix needed):
+
 ```vl
-v:name=value              # Inferred type
-v:name:type=value         # Explicit type
+name=value              # Inferred type
+name:type=value         # Explicit type
 ```
 
 **Examples:**
 
 ```vl
-v:count=0                 # int inferred
-v:name='Alice'            # str inferred
-v:items:arr=[1,2,3]      # explicit type
-v:total:float=0.0        # explicit type
+count=0                 # int inferred
+name='Alice'            # str inferred
+items:A=[1,2,3]        # explicit array type
+total:N=0.0            # explicit float type
 ```
 
 ### Direct Function Calls
@@ -691,7 +725,7 @@ For function calls without needing the return value, or within expressions, use 
 v:result=@loadData()*2
 
 # Recursion
-fn:fact|i:int|o:int|
+F:fact|I|I|
   if:i0<=1?ret:1:ret:i0*@fact(i0-1)
 ```
 
@@ -706,9 +740,9 @@ v:msg='Hello'|v:x=print(msg)  # 13 tokens
 # 54% token reduction!
 
 # Recursion with @
-fn:fact|i:int|o:int|if:i0<=1?ret:1:ret:i0*@fact(i0-1)  # 29 tokens
+F:fact|I|I|if:i0<=1?ret:1:ret:i0*@fact(i0-1)  # 29 tokens
 # vs
-fn:fact|i:int|o:int|if:i0<=1?ret:1:ret:i0*fact(i0-1)   # 29 tokens (same!)
+F:fact|I|I|if:i0<=1?ret:1:ret:i0*fact(i0-1)   # 29 tokens (same!)
 # @ makes recursion clearer without token overhead
 ```
 
@@ -770,10 +804,10 @@ a || b                   # Logical OR
 
 ```vl
 # Prefix notation
-fn:calc|i:int,int,int|o:int|ret:op:+(op:*(i0,i1),op:/(i2,2))  # 23 tokens
+F:calc|I,I,I|I|ret:op:+(op:*(i0,i1),op:/(i2,2))  # 23 tokens
 
 # Infix notation (recommended)
-fn:calc|i:int,int,int|o:int|ret:(i0*i1)+(i2/2)                # 23 tokens
+F:calc|I,I,I|I|ret:(i0*i1)+(i2/2)                # 23 tokens
 # Similar token count but more readable and familiar syntax
 ```
 
@@ -781,10 +815,10 @@ fn:calc|i:int,int,int|o:int|ret:(i0*i1)+(i2/2)                # 23 tokens
 
 ```vl
 # Prefix: -86% efficiency (very verbose)
-fn:validate|i:int,int,bool|o:bool|ret:op:&&(op:>(i0,0),op:&&(op:<(i1,100),i2))
+F:validate|I,I,B|B|ret:op:&&(op:>(i0,0),op:&&(op:<(i1,100),i2))
 
 # Infix: Optimized per target language
-fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2
 ```
 
 **Cross-Platform Boolean Optimization:**
@@ -793,7 +827,7 @@ VL uses `&&`, `||`, and `!` for boolean logic in the source language, but each t
 
 **VL Source (universal):**
 ```vl
-fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2
 ```
 
 **Python Target (uses `all()` for token efficiency):**
@@ -1080,7 +1114,7 @@ v:users=getUsers()|
 ret:$users|filter:age>18|map:name
 
 # From API call
-fn:fetchActive|i:str|o:arr|
+F:fetchActive|S|A|
   v:result=api:GET,i0|
   ret:$result|filter:status=='active'
 
@@ -1088,7 +1122,7 @@ fn:fetchActive|i:str|o:arr|
 ret:@loadData()|filter:x>0|map:x*2
 
 # In return statement
-fn:process|i:arr|o:arr|
+F:process|A|A|
   ret:$i0|filter:active==true|map:salary*1.1
 ```
 
@@ -1103,14 +1137,14 @@ fn:process|i:arr|o:arr|
 
 ```vl
 # Without expression pipelines (old)
-fn:fetchActive|i:str|o:arr|
+F:fetchActive|S|A|
   v:data=api:GET,i0|
   v:filtered=data:data|filter:status=='active'|
   ret:$filtered
 # 30 tokens
 
 # With expression pipelines (new)
-fn:fetchActive|i:str|o:arr|
+F:fetchActive|S|A|
   v:result=api:GET,i0|
   ret:$result|filter:status=='active'
 # 23 tokens (23% reduction!)
@@ -1422,7 +1456,7 @@ ffi:c,libc::fopen,$filename,'r'
 
 ```
 VL code with FFI:
-fn:analyze|i:str|o:obj|
+F:analyze|S|O|
   v:data=ffi:python,pandas.read_csv,$i     ← Free (local)
   v:mean=ffi:python,numpy.mean,$data       ← Free (local)
   ret:$mean
@@ -1446,38 +1480,38 @@ LLM Token Cost: ~80 tokens (verbose Python code)
 ### Example 1: Simple Function
 
 ```vl
-meta:calculator,function,python
-fn:add|i:int,int|o:int|ret:op:+(i0,i1)
-export:add
+M:calculator,function,python
+F:add|I,I|I|ret:op:+(i0,i1)
+E:add
 ```
 
 ### Example 2: API Function
 
 ```vl
-meta:getAdultUsers,api_function,python
+M:getAdultUsers,api_function,python
 deps:requests
-fn:getAdultUsers|i:str|o:arr|
+F:getAdultUsers|S|A|
 async|api:GET,$i|filter:age>=18|map:name,email
-export:getAdultUsers
+E:getAdultUsers
 ```
 
 ### Example 3: React Component
 
 ```vl
-meta:Counter,ui_component,react
+M:Counter,ui_component,react
 ui:Counter|state:count:int=0|
 on:handleClick|setState:count,op:+(count,1)|
 render:div,{className:'counter'}|
   render:h1|'Count: ${count}'|
   render:button,{onClick:$handleClick}|'Increment'
-export:Counter
+E:Counter
 ```
 
 ### Example 4: Data Pipeline
 
 ```vl
-meta:processSales,data_processor,python
-fn:processSales|i:str|o:obj|
+M:processSales,data_processor,python
+F:processSales|S|O|
 file:read,$i|parse:csv,{headers:true}|
 data:$data|
   filter:amount>100|
@@ -1485,16 +1519,16 @@ data:$data|
   agg:sum,amount|
   sort:total,desc|
 ret:$result
-export:processSales
+E:processSales
 ```
 
 ### Example 5: Complex Workflow
 
 ```vl
-meta:userAnalytics,api_function,node
+M:userAnalytics,api_function,node
 deps:[axios,lodash]
 
-fn:analyzeUsers|i:str|o:obj|
+F:analyzeUsers|S|O|
   # Fetch user data
   v:users=async|api:GET,$i|parse:json|
   
@@ -1515,7 +1549,7 @@ fn:analyzeUsers|i:str|o:obj|
   
   ret:$result
 
-export:analyzeUsers
+E:analyzeUsers
 ```
 
 -----

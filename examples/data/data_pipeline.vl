@@ -1,16 +1,16 @@
 # Data Pipeline Example - JavaScript
-meta:data_pipeline_demo,script,javascript
+M:data_pipeline_demo,script,javascript
 
 # Simple data transformation pipeline
-fn:processNumbers|i:arr|o:arr|v:result=data:i0|filter:item>5|map:item*2|ret:result
+F:processNumbers|A|A|result=data:i0|filter:item>5|map:item*2|ret:result
 
 # Complex grouping and aggregation
-fn:analyzeData|i:arr|o:obj|v:result=data:i0|groupBy:category|agg:sum|ret:result
+F:analyzeData|A|O|result=data:i0|groupBy:category|agg:sum|ret:result
 
 # Chained operations
-v:numbers=[1,2,3,4,5,6,7,8,9,10]
-v:filtered=processNumbers(numbers)
+numbers=[1,2,3,4,5,6,7,8,9,10]
+filtered=processNumbers(numbers)
 @console.log('Filtered:', filtered)
 
-export:processNumbers
-export:analyzeData
+E:processNumbers
+E:analyzeData

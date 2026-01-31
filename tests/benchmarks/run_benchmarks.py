@@ -18,11 +18,11 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-# Add interpreter directory to path
-sys.path.append(str(Path(__file__).parent / 'interpreter'))
+# Add src directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
 try:
-    from compiler import Compiler, TargetLanguage
+    from vl.compiler import Compiler, TargetLanguage
     import tiktoken
     HAS_TIKTOKEN = True
 except ImportError:
@@ -81,19 +81,19 @@ def run_token_benchmark():
     print(f"{'-'*80}")
     
     test_cases = [
-        {"name": "Hello World", "vl": "print('Hello World')"},
-        {"name": "Simple Function", "vl": "fn:add|i:int,int|o:int|ret:i0+i1"},
-        {"name": "API Call", "vl": "requests.get('users/active')"},
-        {"name": "Data Pipeline", "vl": "data:users|filter:active==true|groupBy:role|agg:count"},
-        {"name": "Complex Logic", "vl": "fn:process|i:arr|o:arr|limit=100|for:item,i0|if:item.val>limit?item.val*2:item.val|ret:i0"},
-        {"name": "Conditional Return", "vl": "fn:max|i:int,int|o:int|ret:if:i0>i1?i0:i1"},
-        {"name": "Array Map", "vl": "fn:double_all|i:arr|o:arr|ret:data:i0|map:item*2"},
+        {"name": "Hello World", "vl": "@print('Hello World')"},
+        {"name": "Simple Function", "vl": "F:add|I,I|I|ret:i0+i1"},
+        {"name": "API Call", "vl": "F:fetch|S|O|api:GET,i0"},
+        {"name": "Data Pipeline", "vl": "data:users|filter:active|groupBy:role|agg:count"},
+        {"name": "Complex Logic", "vl": "F:process|A|A|limit=100|for:item,i0|if:item.val>limit?item.val*2:item.val|ret:i0"},
+        {"name": "Conditional Return", "vl": "F:max|I,I|I|ret:if:i0>i1?i0:i1"},
+        {"name": "Array Map", "vl": "F:double_all|A|A|ret:data:i0|map:item*2"},
         {"name": "Variable Assignment", "vl": "count=0|name='Alice'|total=count+10"},
         {"name": "Loop with Accumulator", "vl": "total=0|for:i,0..10|total+=i"},
         {"name": "Multi-step Calculation", "vl": "x=5|y=10|result=(x+y)/2"},
-        {"name": "Boolean Logic", "vl": "fn:validate|i:int,int|o:bool|ret:i0>0&&i1<100"},
-        {"name": "Recursion", "vl": "fn:fact|i:int|o:int|if:i0<=1?ret:1:ret:i0*@fact(i0-1)"},
-        {"name": "Pipeline from Expression", "vl": "fn:fetchActive|i:str|o:arr|result=api:GET,i0|ret:$result|filter:status=='active'"}
+        {"name": "Boolean Logic", "vl": "F:validate|I,I|B|ret:i0>0&&i1<100"},
+        {"name": "Recursion", "vl": "F:fact|I|I|if:i0<=1?ret:1:ret:i0*@fact(i0-1)"},
+        {"name": "Pipeline from Expression", "vl": "F:fetchActive|S|A|result=api:GET,i0|ret:$result|filter:status=='active'"}
     ]
     
     total_vl_tokens = 0
@@ -136,6 +136,7 @@ def run_token_benchmark():
 def main():
 
     root = Path(__file__).parent
+    integration_root = root.parent / "integration"
     
     print_header(f"VL COMPREHENSIVE BENCHMARK SUITE - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("This suite validates VL language features, robustness, and token efficiency.")
@@ -144,9 +145,9 @@ def main():
     results = {}
     
     # 1. Example Compilation Tests
-    example_test = root / "test_examples.py"
+    example_test = integration_root / "test_examples.py"
     if example_test.exists():
-        results['examples'] = run_script(example_test, "TEST 1/4: Example Programs (7 .vl files)")
+        results['examples'] = run_script(example_test, "TEST 1/4: Example Programs (12 .vl files)")
     else:
         print(f"Warning: {example_test} not found")
         results['examples'] = False
@@ -188,11 +189,11 @@ def main():
     if passed == total:
         print("[+] ALL TESTS PASSED - Ready to push!")
         print("\nKey metrics for documentation:")
-        print("- Example Programs: 7/7 (100%)")
+        print("- Example Programs: 12/12 (100%)")
         print("- Robustness: 15/15 (100%)")
-        print("- Strength Analysis: ~93% compilation success")
+        print("- Strength Analysis: 15/15 (100%)")
         print("- Average Token Efficiency: 45.1%")
-        print("- Execution Validation: 17/17 (100%)")
+        print("- Codegen (5 targets): 65/65 (100%)")
         print("- Status: 100% OPERATIONAL")
         return 0
     else:

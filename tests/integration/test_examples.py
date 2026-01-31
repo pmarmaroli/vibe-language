@@ -5,10 +5,10 @@ Test all VL example programs to ensure they compile correctly
 import sys
 from pathlib import Path
 
-# Add interpreter to path
-sys.path.insert(0, str(Path(__file__).parent / 'interpreter'))
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from compiler import Compiler, TargetLanguage
+from vl.compiler import Compiler, TargetLanguage
 
 def test_example(file_path):
     """Test a single VL example file"""

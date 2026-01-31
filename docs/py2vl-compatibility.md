@@ -82,9 +82,9 @@ print(result)
 
 Converts to:
 ```vl
-fn:fibonacci|i:int|o:int|ret:if:i0<=1?i0:fibonacci(i0-1)+fibonacci(i0-2)
+F:fibonacci|I|I|ret:if:i0<=1?i0:fibonacci(i0-1)+fibonacci(i0-2)
 
-fn:sum_range|i:int|o:int|
+F:sum_range|I|I|
   total=0|
   i_var=0|
   while:i_var<i0|

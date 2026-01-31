@@ -1,5 +1,5 @@
 
-fn:read_numbers|i:str|o:arr|
+F:read_numbers|S|A|
   numbers=[]|
   py:with open(filename, 'r') as f:##  for line in f:##    numbers.append(int(line.strip()))|
   ret:numbers

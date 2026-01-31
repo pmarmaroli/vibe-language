@@ -1,6 +1,6 @@
 # Data Processing Example
-meta:processSales,data_processor,python
+M:processSales,data_processor,python
 
-fn:processSales|i:arr|o:arr|data:i0|filter:amount>100|groupBy:category
+F:processSales|A|A|data:i0|filter:amount>100|groupBy:category
 
-export:processSales
+E:processSales

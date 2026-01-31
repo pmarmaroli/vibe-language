@@ -27,7 +27,7 @@ class TestJSCodeGenerator(unittest.TestCase):
         self.assertIn("let x = 42;", js)
 
     def test_function_def(self):
-        code = "fn:add|i:int,int|o:int|ret:op:+(i0,i1)"
+        code = "F:add|I,I|I|ret:op:+(i0,i1)"
         js = self.compile(code)
         self.assertIn("function add(i0, i1) {", js)
         self.assertIn("return (i0 + i1);", js)

@@ -28,6 +28,7 @@ class TypeInfo:
 
 # Built-in type definitions
 BUILTIN_TYPES = {
+    # Standard type names
     'int': TypeInfo('int', is_numeric=True),
     'float': TypeInfo('float', is_numeric=True),
     'str': TypeInfo('str'),
@@ -40,22 +41,44 @@ BUILTIN_TYPES = {
     'func': TypeInfo('func'),
     'map': TypeInfo('map', is_collection=True),
     'set': TypeInfo('set', is_collection=True),
+    # Optimized single-char type aliases (map to same TypeInfo)
+    'I': TypeInfo('int', is_numeric=True),      # I = int
+    'N': TypeInfo('float', is_numeric=True),    # N = number (float)
+    'S': TypeInfo('str'),                        # S = str
+    'B': TypeInfo('bool'),                       # B = bool
+    'A': TypeInfo('arr', is_collection=True),   # A = arr (array)
+    'O': TypeInfo('obj'),                        # O = obj (object)
+    'V': TypeInfo('void'),                       # V = void
+    'P': TypeInfo('promise'),                    # P = promise
+    'L': TypeInfo('func'),                       # L = lambda/func
 }
 
 # Type compatibility rules: target -> allowed_sources
+# Include both standard and short aliases
 TYPE_COMPATIBILITY = {
-    'any': {'int', 'float', 'str', 'bool', 'arr', 'obj', 'any', 'void', 'promise', 'func', 'map', 'set'},
-    'float': {'int', 'float'},  # int can be assigned to float
-    'int': {'int'},
-    'str': {'str'},
-    'bool': {'bool'},
-    'arr': {'arr'},
-    'obj': {'obj'},
-    'void': {'void'},
-    'promise': {'promise'},
-    'func': {'func'},
+    'any': {'int', 'float', 'str', 'bool', 'arr', 'obj', 'any', 'void', 'promise', 'func', 'map', 'set',
+            'I', 'N', 'S', 'B', 'A', 'O', 'V', 'P', 'L'},
+    'float': {'int', 'float', 'I', 'N'},  # int can be assigned to float
+    'int': {'int', 'I'},
+    'str': {'str', 'S'},
+    'bool': {'bool', 'B'},
+    'arr': {'arr', 'A'},
+    'obj': {'obj', 'O'},
+    'void': {'void', 'V'},
+    'promise': {'promise', 'P'},
+    'func': {'func', 'L'},
     'map': {'map'},
     'set': {'set'},
+    # Short aliases also as targets
+    'I': {'int', 'I'},
+    'N': {'int', 'float', 'I', 'N'},
+    'S': {'str', 'S'},
+    'B': {'bool', 'B'},
+    'A': {'arr', 'A'},
+    'O': {'obj', 'O'},
+    'V': {'void', 'V'},
+    'P': {'promise', 'P'},
+    'L': {'func', 'L'},
 }
 
 
@@ -110,9 +133,17 @@ class TypeChecker:
     
     def _resolve_type(self, type_node: Type) -> TypeInfo:
         """Convert a Type AST node to TypeInfo"""
-        type_name = type_node.name.lower()
+        type_name = type_node.name
+        
+        # Check for exact match first (handles single-char aliases A, I, S, etc.)
         if type_name in BUILTIN_TYPES:
             return BUILTIN_TYPES[type_name]
+        
+        # Try lowercase for standard type names (int, str, etc.)
+        type_name_lower = type_name.lower()
+        if type_name_lower in BUILTIN_TYPES:
+            return BUILTIN_TYPES[type_name_lower]
+        
         # Unknown type - treat as any
         return TypeInfo(type_name)
     

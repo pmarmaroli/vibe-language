@@ -5,19 +5,19 @@ Tests VL's ability to handle production-level code patterns
 """
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent / 'interpreter'))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'src'))
 
-from compiler import Compiler, TargetLanguage
+from vl.compiler import Compiler, TargetLanguage
 
 # Complex test scenarios
 test_scenarios = {
     "Nested Conditionals": """
-fn:classify|i:int|o:str|
+F:classify|I|S|
 ret:if:op:>(i0,100)?'large':if:op:>(i0,50)?'medium':if:op:>(i0,10)?'small':'tiny'
 """,
     
     "Multiple Variables & Operations": """
-fn:calculate|i:int,int,int|o:int|
+F:calculate|I,I,I|I|
 v:sum=op:+(i0,i1)|
 v:product=op:*(sum,i2)|
 v:adjusted=op:-(product,10)|
@@ -25,7 +25,7 @@ ret:adjusted
 """,
     
     "Nested Loops": """
-fn:matrix|i:int,int|o:arr|
+F:matrix|I,I|A|
 v:result=[]|
 for:i,range(0,i0)|
   for:j,range(0,i1)|
@@ -34,12 +34,12 @@ ret:result
 """,
     
     "Complex Data Pipeline": """
-fn:analyze|i:arr|o:arr|
+F:analyze|A|A|
 ret:data:i0|filter:age>18|filter:active==true|map:op:*(salary,1.1)|filter:op:>(item,50000)
 """,
 
     "Chained Operations": """
-fn:transform|i:int|o:int|
+F:transform|I|I|
 v:x=op:+(i0,5)|
 v:y=op:*(x,2)|
 v:z=op:/(y,3)|
@@ -48,7 +48,7 @@ ret:result
 """,
 
     "Mixed Statement Types": """
-fn:process|i:arr,int|o:arr|
+F:process|A,I|A|
 v:threshold=i1|
 v:filtered=data:i0|filter:op:>(value,threshold)|
 for:item,filtered|
@@ -57,45 +57,45 @@ ret:filtered
 """,
 
     "String Interpolation Complex": """
-fn:greet|i:str,int|o:str|
+F:greet|S,I|S|
 ret:'Hello ${i0}, you are ${i1} years old and ${if:op:>(i1,18)?'adult':'minor'}'
 """,
 
     "Multiple Return Paths": """
-fn:divide|i:int,int|o:int|
+F:divide|I,I|I|
 if:op:==(i1,0)?ret:0:ret:op:/(i0,i1)
 """,
 
     "Array Operations": """
-fn:process_array|i:arr|o:arr|
+F:process_array|A|A|
 v:doubled=data:i0|map:op:*(item,2)|
 v:filtered=data:doubled|filter:op:>(item,10)|
 ret:filtered
 """,
 
     "Boolean Logic": """
-fn:validate|i:int,int|o:bool|
+F:validate|I,I|B|
 ret:if:op:&&(op:>(i0,0),op:<(i1,100))?true:false
 """,
 
     "Deep Nesting": """
-fn:nested|i:int|o:int|
+F:nested|I|I|
 ret:if:op:>(i0,0)?op:+(op:*(i0,2),if:op:>(i0,10)?5:3):op:-(i0,1)
 """,
 
     "API with Error Handling": """
-fn:fetchData|i:str|o:obj|
+F:fetchData|S|O|
 v:response=api:GET,i0|
 if:op:==(response.status,200)?ret:response.json:ret:{}
 """,
 
     "Multiple Filters": """
-fn:filterUsers|i:arr|o:arr|
+F:filterUsers|A|A|
 ret:data:i0|filter:age>18|filter:active==true|filter:verified==true|filter:score>50
 """,
 
     "Function Composition": """
-fn:compose|i:int|o:int|
+F:compose|I|I|
 v:step1=op:+(i0,5)|
 v:step2=op:*(step1,2)|
 v:step3=if:op:>(step2,20)?op:-(step2,10):step2|
@@ -103,7 +103,7 @@ ret:step3
 """,
 
     "Edge Case - Empty Input": """
-fn:safe|i:arr|o:int|
+F:safe|A|I|
 ret:if:op:==(i0,[])?0:op:+(i0[0],1)
 """,
 }

@@ -22,7 +22,7 @@ except Exception as e:
 
 # 2. Data pipeline in function return
 try:
-    c = Compiler('fn:test|i:arr|o:arr|ret:data:i0|map:item*2', type_check_enabled=False)
+    c = Compiler('F:test|A|A|ret:data:i0|map:item*2', type_check_enabled=False)
     code = c.compile()
     exec(code)
     result = test([1, 2, 3])
@@ -33,7 +33,7 @@ except Exception as e:
 
 # 3. String literals in conditionals
 try:
-    c = Compiler('fn:classify|i:int|o:str|ret:if:i0>0?\'positive\':\'negative\'', type_check_enabled=False)
+    c = Compiler('F:classify|I|S|ret:if:i0>0?\'positive\':\'negative\'', type_check_enabled=False)
     code = c.compile()
     exec(code)
     print(f"[3] Strings in conditionals: COMPILES & EXECUTES")
@@ -53,7 +53,7 @@ except Exception as e:
 
 # 5. Complex boolean expressions
 try:
-    c = Compiler('fn:validate|i:int,int,bool|o:bool|ret:(i0>0)&&(i1<100)&&i2', type_check_enabled=False)
+    c = Compiler('F:validate|I,I,B|B|ret:(i0>0)&&(i1<100)&&i2', type_check_enabled=False)
     code = c.compile()
     exec(code)
     print(f"[5] Complex boolean: COMPILES & EXECUTES")
@@ -63,7 +63,7 @@ except Exception as e:
 
 # 6. API calls (generates code but needs requests module)
 try:
-    c = Compiler('fn:fetch|i:str|o:obj|ret:api:GET,i0', type_check_enabled=False)
+    c = Compiler('F:fetch|S|O|ret:api:GET,i0', type_check_enabled=False)
     code = c.compile()
     print(f"[6] API call: COMPILES")
     print(f"    (Requires requests module at runtime)")
@@ -72,7 +72,7 @@ except Exception as e:
 
 # 7. Member access chains
 try:
-    c = Compiler('fn:getName|i:obj|o:str|ret:i0.user.name', type_check_enabled=False)
+    c = Compiler('F:getName|O|S|ret:i0.user.name', type_check_enabled=False)
     code = c.compile()
     exec(code)
     test_obj = type('obj', (), {'user': type('user', (), {'name': 'Bob'})()})()
@@ -83,7 +83,7 @@ except Exception as e:
 
 # 8. Array operations with filtering
 try:
-    c = Compiler('fn:filterEvens|i:arr|o:arr|ret:data:i0|filter:item%2==0', type_check_enabled=False)
+    c = Compiler('F:filterEvens|A|A|ret:data:i0|filter:item%2==0', type_check_enabled=False)
     code = c.compile()
     exec(code)
     print(f"[8] Array filter: COMPILES & EXECUTES")

@@ -26,7 +26,7 @@ print("=" * 70)
 print("\nTest 1: Boolean optimization threshold")
 print("-" * 70)
 
-vl_code = "fn:test|i:int,int,int|o:bool|ret:i0>0&&i1<100&&i2"
+vl_code = "F:test|I,I,I|B|ret:i0>0&&i1<100&&i2"
 
 # Default behavior (threshold = 3)
 compiler = Compiler(vl_code, target=TargetLanguage.PYTHON, type_check_enabled=False)

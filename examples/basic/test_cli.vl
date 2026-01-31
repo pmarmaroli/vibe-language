@@ -1,1 +1,1 @@
-fn:add|i:int,int|o:int|ret:i0+i1
+F:add|I,I|I|ret:i0+i1

@@ -1,4 +1,4 @@
-fn:filter_evens|i:arr|o:arr|
+F:filter_evens|A|A|
   evens=[]|
   for:n,i0|
     if:n%2==0|

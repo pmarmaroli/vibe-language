@@ -33,6 +33,7 @@ class TSCodeGenerator:
     def _type_to_ts(self, vl_type: Type) -> str:
         """Convert VL type to TypeScript type"""
         type_map = {
+            # Standard type names
             'int': 'number',
             'float': 'number',
             'str': 'string',
@@ -45,6 +46,16 @@ class TSCodeGenerator:
             'void': 'void',
             'promise': 'Promise<any>',
             'func': 'Function',
+            # Optimized single-char type aliases
+            'I': 'number',           # I = int
+            'N': 'number',           # N = number (float)
+            'S': 'string',           # S = str
+            'B': 'boolean',          # B = bool
+            'A': 'any[]',            # A = arr (array)
+            'O': 'Record<string, any>', # O = obj (object)
+            'V': 'void',             # V = void
+            'P': 'Promise<any>',     # P = promise
+            'L': 'Function',         # L = lambda/func
         }
         return type_map.get(vl_type.name, 'any')
     

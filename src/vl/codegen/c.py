@@ -34,6 +34,7 @@ class CCodeGenerator:
     def _type_to_c(self, vl_type: Type) -> str:
         """Convert VL type to C type"""
         type_map = {
+            # Standard type names
             'int': 'int',
             'float': 'double',
             'str': 'char*',
@@ -42,6 +43,14 @@ class CCodeGenerator:
             'obj': 'void*',  # Generic object, needs more context
             'any': 'void*',
             'void': 'void',
+            # Optimized single-char type aliases
+            'I': 'int',              # I = int
+            'N': 'double',           # N = number (float)
+            'S': 'char*',            # S = str
+            'B': 'bool',             # B = bool
+            'A': 'void*',            # A = arr (array)
+            'O': 'void*',            # O = obj (object)
+            'V': 'void',             # V = void
         }
         return type_map.get(vl_type.name, 'void*')
     

@@ -205,7 +205,7 @@ msg='Hello, VL!'
 @print(msg)
 
 # With a function
-fn:greet|i:str|o:str|ret:'Hello, ${i0}!'
+F:greet|S|S|ret:'Hello, ${i0}!'
 result=@greet('World')
 @print(result)
 ```
@@ -214,11 +214,11 @@ Or see the actual example at [examples/basic/hello.vl](examples/basic/hello.vl):
 
 ```vl
 # Hello World in VL
-meta:hello,function,python
+M:hello,function,python
 
-fn:greet|i:str|o:str|ret:'Hello, ${i}!'
+F:greet|S|S|ret:'Hello, ${i}!'
 
-export:greet
+E:greet
 ```
 
 Run it:
@@ -405,12 +405,12 @@ data:users|filter:age>18|filter:active==true|map:salary*1.1|filter:item>50000
 
 **🎯 API with Processing: 25.6% token savings**
 ```vl
-fn:fetchActive|i:str|o:arr|result=api:GET,i0|ret:$result|filter:status=='active'
+F:fetchActive|S|A|result=api:GET,i0|ret:$result|filter:status=='active'
 ```
 
 **🎯 Nested Conditional Logic: 22.4% token savings**
 ```vl
-fn:classify|i:int|o:str|ret:if:i0>1000?'huge':if:i0>100?'large':if:i0>10?'medium':'small'
+F:classify|I|S|ret:if:i0>1000?'huge':if:i0>100?'large':if:i0>10?'medium':'small'
 ```
 
 **🎯 Dictionary Operations: 29.7% token savings**
@@ -425,7 +425,7 @@ Complex boolean expressions now use target-specific optimization:
 
 **Example:**
 ```vl
-fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2
 ```
 
 **Python Output (optimized):**
@@ -470,6 +470,31 @@ Weak Areas (<-10% savings): 1/15 scenarios
 Compilation Success Rate: 100% (15/15)
 Execution Success Rate: 100% (17/17 validation tests)
 ```
+
+### 🤖 LLM Validation Results (Jan 31, 2026)
+
+**VL works as a universal intermediate language for LLM communication.** We validated that both Claude and Gemini can understand VL syntax (via a ~100 token primer) and produce functionally correct code.
+
+**Correctness Testing** (8 test cases: add, max, fibonacci, sum_list, filter_positive, factorial, classify, reverse_string):
+
+| Model | Python Mode | VL Mode | Correctness |
+|-------|-------------|---------|-------------|
+| **Claude** (`claude-sonnet-4-20250514`) | 8/8 ✓ | 8/8 ✓ | **100%** |
+| **Gemini** (`gemini-3-pro-preview`) | 8/8 ✓ | 8/8 ✓ | **100%** |
+
+Both models produce functionally equivalent Python code whether given Python or VL input.
+
+**Token Efficiency Breakeven Analysis** (Python codegen target):
+
+| Model | Breakeven Point | Max Savings | Notes |
+|-------|-----------------|-------------|-------|
+| **Claude** (`claude-sonnet-4-20250514`) | ~20-30 functions (~1000 tokens) | 7-11% | Consistent savings at scale |
+| **Gemini** (`gemini-3-pro-preview`) | ~30 functions (~1136 tokens) | 1.1% | Inconsistent, minimal savings |
+
+**Recommendation:** 
+- ✅ **Use VL with Claude** for codebases >1000 tokens to save 7-11% on API costs
+- ⚠️ **VL with Gemini** shows minimal token benefit due to different tokenization
+- VL is validated as a **correct intermediate representation** for both models
 
 **Recent Improvements (v0.1.3):**
 - **All Tests Passing**: All generated Python executes correctly (validation tests)
@@ -544,10 +569,10 @@ vibe-language/
 ### File Structure
 
 ```vl
-meta:program_name,type,target_language
-deps:[dependencies]
+M:program_name,type,target_language
+D:[dependencies]
 [main content]
-export:export_name
+E:export_name
 ```
 
 ### Core Constructs
@@ -555,7 +580,7 @@ export:export_name
 **Functions:**
 
 ```vl
-fn:function_name|i:type1,type2|o:return_type|body
+F:function_name|type1,type2|return_type|body
 ```
 
 **Variables:**
@@ -653,13 +678,13 @@ VL handles real-world production patterns including:
 
 **Example: Complex String Interpolation**
 ```vl
-fn:greet|i:str,int|o:str|
+F:greet|S,I|S|
 ret:'Hello ${i0}, you are ${i1} and ${if:op:>(i1,18)?'adult':'minor'}'
 ```
 
 **Example: Early Returns (Guard Clauses)**
 ```vl
-fn:divide|i:int,int|o:int|
+F:divide|I,I|I|
 if:op:==(i1,0)?ret:0:ret:op:/(i0,i1)
 ```
 
@@ -670,11 +695,11 @@ if:op:==(i1,0)?ret:0:ret:op:/(i0,i1)
 ### Example 1: API Function
 
 ```vl
-meta:getAdultUsers,api_function,python
+M:getAdultUsers,api_function,python
 deps:requests
-fn:getAdultUsers|i:str|o:arr|
+F:getAdultUsers|S|A|
 async|api:GET,$i|filter:age>=18|map:name,email
-export:getAdultUsers
+E:getAdultUsers
 ```
 
 **Equivalent Python (for comparison):**
@@ -711,7 +736,7 @@ result=py:scipy.stats.norm.pdf(0.5)
 response=py:requests.get('http://api.com').json()
 
 # In functions
-fn:parseJSON|i:str|o:obj|ret:py:json.loads(i0)
+F:parseJSON|S|O|ret:py:json.loads(i0)
 ```
 
 **Benefits:**
@@ -727,20 +752,20 @@ This makes VL immediately practical for data science, machine learning, web scra
 ### Example 3: React Component
 
 ```vl
-meta:Counter,ui_component,react
+M:Counter,ui_component,react
 ui:Counter|state:count:int=0|
 on:onClick|setState:count,op:+(count,1)|
 render:div|
   render:h1|'Count: ${count}'|
   render:button,{onClick:$onClick}|'Increment'
-export:Counter
+E:Counter
 ```
 
 ### Example 4: Data Pipeline
 
 ```vl
-meta:processSales,data_processor,python
-fn:processSales|i:str|o:obj|
+M:processSales,data_processor,python
+F:processSales|S|O|
 file:read,$i|parse:csv,{headers:true}|
 data:$data|
   filter:amount>100|
@@ -748,7 +773,7 @@ data:$data|
   agg:sum,amount|
   sort:total,desc|
 ret:$result
-export:processSales
+E:processSales
 ```
 
 -----
@@ -764,8 +789,8 @@ VL functions as a **universal intermediate representation (IR)** that compiles t
 ```
 ┌─────────────────────────────────┐
 │   VL Source Code (Universal)    │
-│   fn:validate|i:int,int,bool|   │
-│   o:bool|ret:i0>0&&i1<100&&i2   │
+│   F:validate|I,I,B|             │
+│   B|ret:i0>0&&i1<100&&i2        │
 └────────────────┬────────────────┘
                  │
         VL Parser & AST Builder
@@ -809,7 +834,7 @@ VL functions as a **universal intermediate representation (IR)** that compiles t
 **Example: Same VL, Different Outputs**
 
 ```vl
-fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2
+F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2
 ```
 
 **Python (Optimized for idioms + tokens):**
@@ -906,7 +931,7 @@ result=py:scipy.stats.norm.pdf(0.5)
 data=py:requests.get('http://api.com').json()
 
 # Use in functions
-fn:parse|i:str|o:obj|ret:py:json.loads(i0)
+F:parse|S|O|ret:py:json.loads(i0)
 ```
 
 This enables VL to leverage Python's mature ecosystem while building native implementations incrementally.

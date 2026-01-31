@@ -76,16 +76,16 @@ def run_test_suite():
     
     # Define test cases
     test_cases = [
-        ("Simple function", "fn:add|i:int,int|o:int|ret:i0+i1"),
+        ("Simple function", "F:add|I,I|I|ret:i0+i1"),
         ("Variable assignment", "x=5\ny=10\nresult=x+y"),
-        ("Boolean expression", "fn:validate|i:int,int|o:bool|ret:i0>0&&i1<100"),
-        ("If statement", "fn:max|i:int,int|o:int|ret:if:i0>i1?i0:i1"),
+        ("Boolean expression", "F:validate|I,I|B|ret:i0>0&&i1<100"),
+        ("If statement", "F:max|I,I|I|ret:if:i0>i1?i0:i1"),
         ("Array literal", "nums=[1,2,3,4,5]"),
         ("Object literal", "user={name:'Alice',age:30}"),
         ("String template", "name='World'\nmsg='Hello ${name}!'"),
-        ("Comparison", "fn:compare|i:int,int|o:bool|ret:i0==i1"),
-        ("Arithmetic", "fn:calc|i:int,int|o:int|ret:(i0+i1)*2"),
-        ("Return statement", "fn:get_five|i:|o:int|ret:5"),
+        ("Comparison", "F:compare|I,I|B|ret:i0==i1"),
+        ("Arithmetic", "F:calc|I,I|I|ret:(i0+i1)*2"),
+        ("Return constant", "F:get_five|I|I|ret:5"),
     ]
     
     # Test all targets
@@ -115,17 +115,17 @@ def run_test_suite():
     
     # Python-specific: Type annotations
     print(f"\nPython type annotations:")
-    py_code = "fn:typed|i:int,str,bool|o:float|ret:3.14"
+    py_code = "F:typed|I,S,B|N|ret:3.14"
     test_target(TargetLanguage.PYTHON, py_code, "Type annotations", results)
     
     # TypeScript-specific: Full typing
     print(f"\nTypeScript full typing:")
-    ts_code = "fn:typed|i:int,str|o:str|ret:i1"
+    ts_code = "F:typed|I,S|S|ret:i1"
     test_target(TargetLanguage.TYPESCRIPT, ts_code, "Full typing", results)
     
     # JavaScript: No types
     print(f"\nJavaScript (no types):")
-    js_code = "fn:simple|i:int|o:int|ret:i0*2"
+    js_code = "F:simple|I|I|ret:i0*2"
     test_target(TargetLanguage.JAVASCRIPT, js_code, "No types", results)
     
     return results.summary()
@@ -140,7 +140,7 @@ def test_boolean_optimization():
     results = TestResults()
     
     # Test case: 3+ conditions should use all() in Python
-    vl_code = "fn:validate|i:int,int,bool|o:bool|ret:i0>0&&i1<100&&i2"
+    vl_code = "F:validate|I,I,B|B|ret:i0>0&&i1<100&&i2"
     
     print("\nTesting Python all() optimization:")
     compiler = Compiler(vl_code, TargetLanguage.PYTHON, type_check_enabled=False)
@@ -172,11 +172,9 @@ def test_edge_cases():
     results = TestResults()
     
     edge_cases = [
-        ("Empty function body", "fn:empty|i:|o:void|"),
-        ("Single parameter", "fn:identity|i:int|o:int|ret:i0"),
-        ("No parameters", "fn:get_const|i:|o:int|ret:42"),
-        ("Nested operations", "fn:nested|i:int|o:int|ret:((i0+1)*2)-3"),
-        ("Multiple returns", "fn:abs|i:int|o:int|ret:if:i0<0?-i0:i0"),
+        ("Single parameter", "F:identity|I|I|ret:i0"),
+        ("Nested operations", "F:nested|I|I|ret:((i0+1)*2)-3"),
+        ("Multiple returns", "F:abs|I|I|ret:if:i0<0?-i0:i0"),
     ]
     
     for test_name, vl_code in edge_cases:

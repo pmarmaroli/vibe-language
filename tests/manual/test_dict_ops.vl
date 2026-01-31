@@ -1,4 +1,4 @@
-fn:count_words|i:str|o:obj|
+F:count_words|S|O|
   words=i0.split()|
   counts={}|
   for:word,words|

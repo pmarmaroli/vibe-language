@@ -1,7 +1,7 @@
 # API Example: Fetch users from API
-meta:fetchUsers,api_function,python
+M:fetchUsers,api_function,python
 deps:requests
 
-fn:fetchUsers|i:str|o:obj|api:GET,i0
+F:fetchUsers|S|O|api:GET,i0
 
-export:fetchUsers
+E:fetchUsers

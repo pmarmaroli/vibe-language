@@ -247,7 +247,7 @@ def parse_function(vl_code: str) -> FunctionNode:
 ```python
 def test_function_parsing():
     """Test basic function parsing."""
-    vl_code = "fn:sum|i:int,int|o:int|ret:op:+(i0,i1)"
+    vl_code = "F:sum|I,I|I|ret:op:+(i0,i1)"
     result = parse_function(vl_code)
     assert result.name == "sum"
     assert len(result.inputs) == 2

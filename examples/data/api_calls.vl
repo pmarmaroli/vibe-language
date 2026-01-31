@@ -1,15 +1,12 @@
-# API Call Example - JavaScript
-meta:api_demo,script,javascript
+# API Call Example
+M:api_demo,function,python
+deps:requests
 
 # Simple GET request
-fn:fetchUsers|i:str|o:promise|v:response=api:GET,i0|ret:response
+F:fetchUsers|S|O|response=api:GET,i0|ret:response
 
 # POST request with data
-fn:createUser|i:obj|o:promise|v:response=api:POST,'/api/users',{body:i0}|ret:response
+F:createUser|O|O|response=api:POST,'/api/users',{body:i0}|ret:response
 
-# Use the functions
-v:users=fetchUsers('/api/users')
-@console.log(users)
-
-export:fetchUsers
-export:createUser
+E:fetchUsers
+E:createUser

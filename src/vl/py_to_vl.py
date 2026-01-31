@@ -198,12 +198,12 @@ class PythonToVLConverter:
         else:
             return_type = 'any'
         
-        # Build VL function signature: fn:name|i:type1,type2|o:returntype|
+        # Build VL function signature: F:name|type1,type2|returntype|
         if param_types:
             types_str = ','.join(param_types)
-            self.output.append(f"{self._indent()}fn:{name}|i:{types_str}|o:{return_type}|")
+            self.output.append(f"{self._indent()}F:{name}|{types_str}|{return_type}|")
         else:
-            self.output.append(f"{self._indent()}fn:{name}|i:|o:{return_type}|")
+            self.output.append(f"{self._indent()}F:{name}||{return_type}|")
         
         # Convert function body - collect body statements first
         self.indent_level += 1
@@ -224,15 +224,15 @@ class PythonToVLConverter:
         # But avoid single-line for methods with 'self' references as they need proper parsing
         has_self_ref = any('self' in stmt for stmt in body_statements)
         if len(body_statements) == 1 and not (is_method and has_self_ref):
-            # Single-line format: fn:name|i:types|o:type|statement
+            # Single-line format: F:name|types|type|statement
             stmt = body_statements[0].strip()
             # Remove existing signature line and replace with single-line version
             self.output.pop()  # Remove the multi-line signature
             if param_types:
                 types_str = ','.join(param_types)
-                self.output.append(f"{self._indent()}fn:{name}|i:{types_str}|o:{return_type}|{stmt}")
+                self.output.append(f"{self._indent()}F:{name}|{types_str}|{return_type}|{stmt}")
             else:
-                self.output.append(f"{self._indent()}fn:{name}|i:|o:{return_type}|{stmt}")
+                self.output.append(f"{self._indent()}F:{name}||{return_type}|{stmt}")
         else:
             # Multi-line format: need to use proper indentation
             # Re-add body statements with proper pipe formatting
@@ -541,25 +541,27 @@ class PythonToVLConverter:
             return '?'
     
     def _convert_type_annotation(self, annotation: ast.AST) -> str:
-        """Convert Python type annotation to VL type"""
+        """Convert Python type annotation to VL type (single-char format)"""
         if isinstance(annotation, ast.Name):
             type_map = {
-                'str': 'str',
-                'int': 'int',
-                'float': 'float',
-                'bool': 'bool',
-                'list': 'arr',
-                'dict': 'obj',
-                'Any': 'any'
+                'str': 'S',
+                'int': 'I',
+                'float': 'N',
+                'bool': 'B',
+                'list': 'A',
+                'dict': 'O',
+                'Any': 'any',
+                'None': 'V',
+                'void': 'V'
             }
             return type_map.get(annotation.id, 'any')
         elif isinstance(annotation, ast.Subscript):
             # Handle List[T], Dict[K, V], etc.
             if isinstance(annotation.value, ast.Name):
                 if annotation.value.id in ['List', 'list']:
-                    return 'arr'
+                    return 'A'
                 elif annotation.value.id in ['Dict', 'dict']:
-                    return 'obj'
+                    return 'O'
         return 'any'
     
     def _convert_with(self, node: ast.With) -> None:

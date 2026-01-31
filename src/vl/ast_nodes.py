@@ -64,7 +64,7 @@ class Statement(ASTNode):
 
 @dataclass
 class FunctionDef(Statement):
-    """fn:name|i:type,type|o:type|body"""
+    """F:name|types|type|body"""
     name: str
     input_types: List[Type]
     output_type: Type
@@ -163,7 +163,7 @@ class Expression(ASTNode):
 
 @dataclass
 class FunctionExpr(Expression):
-    """fn:name|i:type,type|o:type|body - Function as expression (for object properties)"""
+    """F:name|types|type|body - Function as expression (for object properties)"""
     name: str
     input_types: List['Type']
     output_type: 'Type'

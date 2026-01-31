@@ -35,28 +35,42 @@ class PythonCodeGenerator:
     def _convert_type_annotation(self, vl_type: str) -> str:
         """Convert VL type to Python type annotation"""
         type_map = {
-            'arr': 'List[Any]',
-            'obj': 'Dict[str, Any]',
+            # Standard type names (lowercase for Python 3.9+ compatibility)
+            'arr': 'list[Any]',
+            'obj': 'dict[str, Any]',
             'str': 'str',
             'int': 'int',
             'bool': 'bool',
             'float': 'float',
-            'any': 'Any'
+            'any': 'Any',
+            # Optimized single-char type aliases
+            'I': 'int',           # I = int
+            'N': 'float',         # N = number (float)
+            'S': 'str',           # S = str
+            'B': 'bool',          # B = bool
+            'A': 'list[Any]',     # A = arr (array) - lowercase for Python 3.9+
+            'O': 'dict[str, Any]',# O = obj (object) - lowercase for Python 3.9+
+            'V': 'None',          # V = void
+            'P': 'Any',           # P = promise (use Any for Python)
+            'L': 'Callable',      # L = lambda/func
         }
         return type_map.get(vl_type, vl_type)
     
     def _needs_typing_imports(self, node: Program) -> bool:
         """Check if program uses types that require typing module"""
+        # Types that need typing module imports (standard + short aliases)
+        typing_types = {'arr', 'obj', 'any', 'A', 'O', 'L'}
+        
         for stmt in node.statements:
             if isinstance(stmt, FunctionDef):
                 # Check input and output types
                 for input_type in stmt.input_types:
-                    if input_type.name in ('arr', 'obj', 'any'):
+                    if input_type.name in typing_types:
                         return True
-                if stmt.output_type and stmt.output_type.name in ('arr', 'obj', 'any'):
+                if stmt.output_type and stmt.output_type.name in typing_types:
                     return True
             elif isinstance(stmt, VariableDef):
-                if stmt.type_annotation and stmt.type_annotation.name in ('arr', 'obj', 'any'):
+                if stmt.type_annotation and stmt.type_annotation.name in typing_types:
                     return True
         return False
     
@@ -87,7 +101,7 @@ class PythonCodeGenerator:
         # Check if we need typing imports
         needs_typing = self._needs_typing_imports(node)
         if needs_typing:
-            self._emit("from typing import List, Dict, Any")
+            self._emit("from typing import Any")
             self._emit('')
         
         # Dependencies (imports)
@@ -699,7 +713,7 @@ if __name__ == "__main__":
     # Test with a simple AST
     from ast_nodes import *
     
-    # Create a simple function: fn:sum|i:int,int|o:int|ret:op:+(i0,i1)
+    # Create a simple function: F:sum|I,I|I|ret:op:+(i0,i1)
     metadata = MetadataNode("sum_function", "function", "python")
     param1 = ParameterNode("i0", "int")
     param2 = ParameterNode("i1", "int")

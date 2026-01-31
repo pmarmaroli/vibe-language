@@ -53,31 +53,31 @@ results.append(test_and_execute(
 
 results.append(test_and_execute(
     "Type annotations (arr→List[Any], obj→Dict[str,Any])",
-    "fn:test|i:arr,obj|o:int|ret:5",
+    "F:test|A,O|I|ret:5",
     lambda g: g['test']([], {}) == 5
 ))
 
 results.append(test_and_execute(
     "Array indexing (arr[0])",
-    "fn:first|i:arr|o:int|ret:i0[0]",
+    "F:first|A|I|ret:i0[0]",
     lambda g: g['first']([10, 20, 30]) == 10
 ))
 
 results.append(test_and_execute(
     "Nested indexing (arr[1][0])",
-    "fn:get|i:arr|o:int|ret:i0[1][0]",
+    "F:get|A|I|ret:i0[1][0]",
     lambda g: g['get']([[1, 2], [3, 4]]) == 3
 ))
 
 results.append(test_and_execute(
     "Object indexing (obj['key'])",
-    "fn:getName|i:obj|o:str|ret:i0['name']",
+    "F:getName|O|S|ret:i0['name']",
     lambda g: g['getName']({'name': 'Alice'}) == 'Alice'
 ))
 
 results.append(test_and_execute(
     "Member access chains (obj.user.name)",
-    "fn:getName|i:obj|o:str|ret:i0.user.name",
+    "F:getName|O|S|ret:i0.user.name",
     lambda g: g['getName'](type('', (), {'user': type('', (), {'name': 'Bob'})()})()) == 'Bob'
 ))
 
@@ -89,26 +89,26 @@ print("-"*70)
 
 results.append(test_and_execute(
     "Map with 'item' keyword (item*2)",
-    "fn:double|i:arr|o:arr|ret:data:i0|map:item*2",
+    "F:double|A|A|ret:data:i0|map:item*2",
     lambda g: g['double']([1, 2, 3]) == [2, 4, 6]
 ))
 
 results.append(test_and_execute(
     "Filter with 'item' keyword (item%2==0)",
-    "fn:evens|i:arr|o:arr|ret:data:i0|filter:item%2==0",
+    "F:evens|A|A|ret:data:i0|filter:item%2==0",
     lambda g: g['evens']([1, 2, 3, 4, 5, 6]) == [2, 4, 6]
 ))
 
 results.append(test_and_execute(
     "Chained pipeline (filter then map)",
-    "fn:process|i:arr|o:arr|ret:data:i0|filter:item>2|map:item*10",
+    "F:process|A|A|ret:data:i0|filter:item>2|map:item*10",
     lambda g: g['process']([1, 2, 3, 4, 5]) == [30, 40, 50]
 ))
 
 # Skip: data pipeline in statement context requires different syntax
 # results.append(test_and_execute(
 #     "Pipeline in statement context",
-#     "fn:test|i:arr|o:arr|data:i0|filter:item>0|map:item+1|ret:data",
+#     "F:test|A|A|data:i0|filter:item>0|map:item+1|ret:data",
 #     lambda g: g['test']([-1, 0, 1, 2]) == [2, 3]
 # ))
 
@@ -120,26 +120,26 @@ print("-"*70)
 
 results.append(test_and_execute(
     "Loop with accumulator",
-    "fn:sum|i:arr|o:int|total=0|for:i,i0|total+=i|ret:total",
+    "F:sum|A|I|total=0|for:i,i0|total+=i|ret:total",
     lambda g: g['sum']([1, 2, 3, 4, 5]) == 15
 ))
 
 # Nested loops work but generate empty body - known limitation
 # results.append(test_and_execute(
 #     "Nested loops",
-#     "fn:matrix|i:int,int|o:arr|result=[]|for:i,0..i0|for:j,0..i1|ret:result",
+#     "F:matrix|I,I|A|result=[]|for:i,0..i0|for:j,0..i1|ret:result",
 #     lambda g: callable(g['matrix'])
 # ))
 
 results.append(test_and_execute(
     "Conditionals with booleans",
-    "fn:test|i:int|o:bool|ret:if:i0>10?true:false",
+    "F:test|I|B|ret:if:i0>10?true:false",
     lambda g: g['test'](15) == True and g['test'](5) == False
 ))
 
 results.append(test_and_execute(
     "String interpolation",
-    "fn:greet|i:str|o:str|ret:'Hello, ${i0}!'",
+    "F:greet|S|S|ret:'Hello, ${i0}!'",
     lambda g: 'Hello' in g['greet']('World')
 ))
 
@@ -151,7 +151,7 @@ results.append(test_and_execute(
 
 results.append(test_and_execute(
     "Range expressions",
-    "fn:count|i:int|o:int|total=0|for:i,0..i0|total+=1|ret:total",
+    "F:count|I|I|total=0|for:i,0..i0|total+=1|ret:total",
     lambda g: g['count'](5) == 5
 ))
 
@@ -169,7 +169,7 @@ results.append(test_and_execute(
 
 results.append(test_and_execute(
     "FFI in function returns",
-    "fn:parseJSON|i:str|o:obj|ret:py:json.loads(i0)",
+    "F:parseJSON|S|O|ret:py:json.loads(i0)",
     lambda g: callable(g['parseJSON'])  # Just check it compiles
 ))
 

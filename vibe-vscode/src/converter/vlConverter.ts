@@ -152,7 +152,7 @@ export class VLConverter {
             const testCode = 'def test(): return 42';
             const vlCode = await this.pythonToVL(testCode);
             
-            if (vlCode.includes('fn:test')) {
+            if (vlCode.includes('F:test')) {
                 this.logger.info('VL converter test passed');
                 return { success: true };
             } else {

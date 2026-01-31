@@ -1,6 +1,6 @@
 # React Counter Component
-meta:Counter,ui_component,react
+M:Counter,ui_component,react
 
-ui:Counter|state:count:int=0|on:handleClick|render:div
+ui:Counter|state:count:I=0|on:handleClick|render:div
 
-export:Counter
+E:Counter

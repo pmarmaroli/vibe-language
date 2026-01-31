@@ -216,7 +216,7 @@ def compile_vl_file(input_path: str, output_path: Optional[str] = None,
 if __name__ == "__main__":
     # Simple test
     test_code = """
-    fn:sum|i:int,int|o:int|ret:op:+(i0,i1)
+    F:sum|I,I|I|ret:op:+(i0,i1)
     """
     
     try:

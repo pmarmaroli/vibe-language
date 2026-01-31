@@ -1,6 +1,6 @@
 # Hello World in VL
-meta:hello,function,python
+M:hello,function,python
 
-fn:greet|i:str|o:str|ret:'Hello, ${i}!'
+F:greet|S|S|ret:'Hello, ${i0}!'
 
-export:greet
+E:greet

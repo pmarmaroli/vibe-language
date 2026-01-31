@@ -103,11 +103,11 @@ class Parser:
         hint_map = {
             TokenType.PIPE: [
                 "VL uses | to separate statements and clauses",
-                "Example: fn:name|i:int|o:int|ret:value"
+                "Example: F:name|I|I|ret:value"
             ],
             TokenType.COLON: [
                 "VL uses : after keywords",
-                "Example: fn:name, v:var, ret:value"
+                "Example: F:name, v:var, ret:value"
             ],
             TokenType.IDENTIFIER: [
                 "Expected a variable or function name"
@@ -469,7 +469,7 @@ class Parser:
         )
     
     def parse_function_def(self) -> FunctionDef:
-        """Parse: fn:name|i:type,type|o:type|body"""
+        """Parse: F:name|types|type|body"""
         name, input_types, output_type, body, token = self._parse_function_common(
             stop_tokens=[TokenType.EOF, TokenType.EXPORT, TokenType.FN, TokenType.META, TokenType.DEPS]
         )
@@ -483,7 +483,7 @@ class Parser:
         )
     
     def parse_function_expr(self) -> FunctionExpr:
-        """Parse: fn:name|i:type,type|o:type|body - Function as expression inside objects"""
+        """Parse: F:name|types|type|body - Function as expression inside objects"""
         name, input_types, output_type, body, token = self._parse_function_common(
             stop_tokens=[TokenType.EOF, TokenType.RBRACE, TokenType.COMMA]
         )
@@ -498,7 +498,10 @@ class Parser:
     
     def _parse_function_common(self, stop_tokens: List[TokenType]):
         """
-        Parse common function structure: fn:name|i:types|o:type|body
+        Parse common function structure.
+        
+        Standard syntax: F:name|types|type|body
+        Legacy syntax: fn:name|i:types|o:type|body (still supported)
         
         Args:
             stop_tokens: Token types that signal end of function body
@@ -512,23 +515,39 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.PIPE)
         
-        # Parse inputs: i:type,type or i: (empty)
-        self.expect(TokenType.INPUT)
-        self.expect(TokenType.COLON)
-        
-        # Check if input list is empty (next token is PIPE)
-        if self.match(TokenType.PIPE):
-            input_types = []
+        # Detect syntax mode: check if next token is INPUT (i:) or a type
+        if self.match(TokenType.INPUT):
+            # Standard syntax: i:type,type|o:type
+            self.advance()  # consume 'i'
+            self.expect(TokenType.COLON)
+            
+            # Check if input list is empty (next token is PIPE)
+            if self.match(TokenType.PIPE):
+                input_types = []
+            else:
+                input_types = self.parse_type_list()
+            
+            self.expect(TokenType.PIPE)
+            
+            # Parse output: o:type
+            self.expect(TokenType.OUTPUT)
+            self.expect(TokenType.COLON)
+            output_type = self.parse_type()
+            self.expect(TokenType.PIPE)
         else:
-            input_types = self.parse_type_list()
-        
-        self.expect(TokenType.PIPE)
-        
-        # Parse output: o:type
-        self.expect(TokenType.OUTPUT)
-        self.expect(TokenType.COLON)
-        output_type = self.parse_type()
-        self.expect(TokenType.PIPE)
+            # Optimized syntax: types|type|body (no i:/o: markers)
+            # Types are positional: inputs|output
+            if self.match(TokenType.PIPE):
+                # Empty inputs: F:name||type|body
+                input_types = []
+            else:
+                input_types = self.parse_type_list()
+            
+            self.expect(TokenType.PIPE)
+            
+            # Output type follows directly
+            output_type = self.parse_type()
+            self.expect(TokenType.PIPE)
         
         # Parse body - statements separated by | or newlines
         body = self._parse_function_body(stop_tokens)
@@ -541,10 +560,10 @@ class Parser:
         
         Module-level statements are identified by being at column 1 after a newline.
         This handles both single-line functions:
-            fn:name|...|ret:value
+            F:name|...|ret:value
             module_statement
         And multi-line functions:
-            fn:name|...|
+            F:name|...|
               body_statement
               body_statement
             module_statement
@@ -1720,7 +1739,7 @@ class Parser:
         )
     
     def parse_object_literal(self) -> ObjectLiteral:
-        """Parse: {key:value,key2:value2} - values can include fn: for methods"""
+        """Parse: {key:value,key2:value2} - values can include F: for methods"""
         token = self.expect(TokenType.LBRACE)
         
         pairs = []
@@ -1736,7 +1755,7 @@ class Parser:
                 raise self.error(f"Expected object key (identifier or keyword), got {self.current_token.type.name}")
             self.expect(TokenType.COLON)
             
-            # Check if value is a function expression (fn:name|...)
+            # Check if value is a function expression (F:name|...)
             if self.match(TokenType.FN):
                 value = self.parse_function_expr()
             else:
@@ -1780,7 +1799,7 @@ def parse(source: str) -> Program:
 if __name__ == "__main__":
     # Test the parser
     test_code = """
-fn:sum|i:int,int|o:int|ret:op:+(i0,i1)
+F:sum|I,I|I|ret:op:+(i0,i1)
     """
     
     try:

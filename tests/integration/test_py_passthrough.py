@@ -11,7 +11,7 @@ from vl.compiler import Compiler
 tests = [
     ('x=py:np.array([1,2,3])', 'numpy array'),
     ('df=py:pd.read_csv(data.csv)', 'pandas read_csv'),
-    ('fn:test|i:str|o:obj|ret:py:json.loads(i0)', 'json.loads in function'),
+    ('F:test|S|O|ret:py:json.loads(i0)', 'json.loads in function'),
     ('result=py:scipy.stats.norm.pdf(0.5)', 'scipy function'),
     ('v:result=py:requests.get(http://api.com).json()', 'chained method calls'),
 ]

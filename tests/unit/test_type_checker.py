@@ -48,7 +48,7 @@ except Exception as e:
 # Test 4: Function return type mismatch
 print("\nTest 4: Function returning wrong type")
 test4 = """
-fn:add|i:int,int|o:str|ret:op:+(i0,i1)
+F:add|I,I|S|ret:op:+(i0,i1)
 """
 try:
     c4 = Compiler(test4)

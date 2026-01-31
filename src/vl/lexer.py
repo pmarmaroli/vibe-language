@@ -129,8 +129,9 @@ class Token:
 class Lexer:
     """VL Lexer - converts source code to tokens"""
     
-    # Keywords mapping
+    # Keywords mapping (includes optimized short forms)
     KEYWORDS = {
+        # Standard keywords
         'meta': TokenType.META,
         'deps': TokenType.DEPS,
         'export': TokenType.EXPORT,
@@ -164,10 +165,17 @@ class Lexer:
         'file': TokenType.FILE,
         'ffi': TokenType.FFI,
         'py': TokenType.PY,
+        # Optimized short forms (token-efficient mode)
+        'M': TokenType.META,      # M: = meta:
+        'D': TokenType.DATA,      # D: = data: (context: after | it's data, at start it's deps)
+        'E': TokenType.EXPORT,    # E: = export:
+        'F': TokenType.FN,        # F: = fn:
+        'R': TokenType.RET,       # R: = ret:
     }
     
-    # Types mapping
+    # Types mapping (includes optimized single-char forms)
     TYPES = {
+        # Standard type names
         'int': TokenType.TYPE_INT,
         'float': TokenType.TYPE_FLOAT,
         'str': TokenType.TYPE_STR,
@@ -180,6 +188,16 @@ class Lexer:
         'void': TokenType.TYPE_VOID,
         'promise': TokenType.TYPE_PROMISE,
         'func': TokenType.TYPE_FUNC,
+        # Optimized single-char type aliases (token-efficient mode)
+        'I': TokenType.TYPE_INT,      # I = int
+        'N': TokenType.TYPE_FLOAT,    # N = number (float)
+        'S': TokenType.TYPE_STR,      # S = str
+        'B': TokenType.TYPE_BOOL,     # B = bool
+        'A': TokenType.TYPE_ARR,      # A = arr (array)
+        'O': TokenType.TYPE_OBJ,      # O = obj (object)
+        'V': TokenType.TYPE_VOID,     # V = void
+        'P': TokenType.TYPE_PROMISE,  # P = promise
+        'L': TokenType.TYPE_FUNC,     # L = lambda/func
     }
     
     # Operators mapping
@@ -500,7 +518,7 @@ def tokenize(source: str) -> List[Token]:
 if __name__ == "__main__":
     # Test the lexer
     test_code = """
-    fn:sum|i:int,int|o:int|ret:op:+(i0,i1)
+    F:sum|I,I|I|ret:op:+(i0,i1)
     """
     
     tokens = tokenize(test_code)

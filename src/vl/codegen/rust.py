@@ -33,6 +33,7 @@ class RustCodeGenerator:
     def _type_to_rust(self, vl_type: Type) -> str:
         """Convert VL type to Rust type"""
         type_map = {
+            # Standard type names
             'int': 'i32',
             'float': 'f64',
             'str': '&str',
@@ -41,6 +42,14 @@ class RustCodeGenerator:
             'obj': 'HashMap<String, String>',  # Simplified
             'any': 'Box<dyn Any>',
             'void': '()',
+            # Optimized single-char type aliases
+            'I': 'i32',                # I = int
+            'N': 'f64',                # N = number (float)
+            'S': '&str',               # S = str
+            'B': 'bool',               # B = bool
+            'A': 'Vec<i32>',           # A = arr (array)
+            'O': 'HashMap<String, String>', # O = obj (object)
+            'V': '()',                 # V = void
         }
         return type_map.get(vl_type.name, 'i32')
     
